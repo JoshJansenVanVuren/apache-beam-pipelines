@@ -18,6 +18,7 @@ import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.StreamingOptions;
+import org.apache.beam.sdk.options.Validation;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.options.Validation.Required;
 import org.apache.beam.sdk.options.ValueProvider.NestedValueProvider;
@@ -309,7 +310,24 @@ public class bioStatsPipe {
 		@Description("The Cloud Pub/Sub topic to read from.")
 		@Required
 		ValueProvider<String> getInputTopic();
-		void setInputTopic(ValueProvider<String> value);	
+		void setInputTopic(ValueProvider<String> value);
+
+		@Description(
+        "The Cloud Pub/Sub topic to publish to. "
+            + "The name should be in the format of "
+            + "projects/<project-id>/topics/<topic-name>.")
+		@Validation.Required
+		ValueProvider<String> getValidOutputTopic();
+		void setValidOutputTopic(ValueProvider<String> outputTopic);
+
+		@Description(
+        "The Cloud Pub/Sub topic to publish to. "
+            + "The name should be in the format of "
+            + "projects/<project-id>/topics/<topic-name>.")
+		@Validation.Required
+		ValueProvider<String> getInvalidOutputTopic();
+		void setInvalidOutputTopic(ValueProvider<String> outputTopic);
+
 	}	
 
 	static void runBioStats(BioStatsOptions options) {
@@ -402,8 +420,7 @@ public class bioStatsPipe {
 		invalid.apply(
 			"Output Invalid Records",
 			ParDo.of(new toStringForOutput()))
-			.apply(ParDo.of(new StringToRowConverter())).apply(
-				BigQueryIO.writeTableRows().to(tableSpec).withSchema(StringToRowConverter.getSchema()));
+			.apply("Write PubSub Events", PubsubIO.writeMessages().to(options.getInvalidOutputTopic()));
 		
 					
 			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_invalid"));*/
@@ -411,8 +428,7 @@ public class bioStatsPipe {
 		// write out the valid records
 		valid.apply("Output Invalid Records",
 			ParDo.of(new toStringForOutput()))
-			.apply(ParDo.of(new StringToRowConverter())).apply(
-				BigQueryIO.writeTableRows().to(tableSpec).withSchema(StringToRowConverter.getSchema()));
+			.apply("Write PubSub Events", PubsubIO.writeMessages().to(options.getValidOutputTopic()));
 			
 			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_valid"));*/
 
