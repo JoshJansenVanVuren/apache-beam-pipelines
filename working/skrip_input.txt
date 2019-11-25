@@ -1,0 +1,3576 @@
+Optimising Resource Allocation Using
+Probabilistic Graphical Models
+by
+Joshua Jansen Van Vüren
+19798385
+Project Supervisor: Prof J.A. du Preez
+
+Report submitted in partial fulfilment of the requirements of the module Project(E) 448 for
+the degree Baccalaureus in Engineering in the Department of Electrical and Electronic
+Engineering at the University of Stellenbosch
+
+Nov 2019
+
+Abstract
+Constrained Satisfaction Problems pose the problem of computationally intractable solution spaces. The allocation of final year students to projects is an example of this kind of
+problem, forming a special case of an assignment problem. Probabilistic Graphical Models
+are identified as a methodology that can solve these kinds of problems. The theoretical
+background and literature of PGM’s and CSP’s are studied with specific references to
+previously solved CSP’s. The model is then methodically constructed and documented.
+Three different systems were theoretically developed and then coded in c++ utilising
+the EMDW package. Each system differed in the information that students provide (i.e.
+a preferred project list, or preference lists for modules, knowledge areas, lecturers, and
+activities, or a combination). All the systems worked successfully, displaying robustness
+and efficiency. Finally, the system was compared to Google OR-Tools Mixed Integer Programming implementation, and the PGM implementation was shown to always performed
+similarly or marginally better.
+
+Beperkte tevredenheidsprobleme stel die probleem van berekenings-ondeurgrondelike oplossingsruimtes voor. Die toekenning van finalejaarstudente aan skripsie projekte is ’n voorbeeld van hierdie soort probleem en vorm ’n spesiale geval van ’n toekennings probleem.
+Grafiese modelleringswaarskynlikheid word geı̈dentifiseer as ’n oplossing vir hierdie soort
+probleem. Die teoretiese agtergrond en literatuur van PGM’s en CSP’s word bestudeer
+met spesifieke verwysings na voorheen opgeloste CSP’s. Die model word dan metodies
+gekonstrueer en gedokumenteer. Drie verskillende stelsels is teoreties ontwikkel en dan
+geprogrameer in c ++ met behulp van die EMDW-pakket. Elke stelsel het verskil in die
+inligting wat studente verskaf in orde van die student se voorkeur (dit wil sê ’n lys van
+projekte, modules, kennisareas, dosente en aktiwiteite, of ’n kombinasie). Al die stelsels
+het suksesvol gewerk. Laastens, is die stelsel vergelyk met die implementering van Google
+OR-Tools, en die PGM-implementering het altyd soortgelyk of marginaal beter gevaar.
+
+Acknowledgements
+Firstly I would like to thank my mother for her unwavering support. My brothers, whom
+without I would not have been able to study. My girlfriend for the countless study
+sessions and support, and my friends for reminding me that taking a break from work is
+okay. Finally, for my supervisor Prof J.A. du Preez, whose guidance was fundamental to
+the success of this project. Whose meetings provided so much more direction than just
+within the scope of this project.
+
+ii
+
+19798385
+
+JM Jansen Van Vüren
+
+4 November 2019
+
+Contents
+Abstract
+
+i
+
+Acknowledgements
+
+ii
+
+Contents
+
+iv
+
+List of Figures
+
+v
+
+List of Tables
+
+vi
+
+Nomenclature
+
+viii
+
+1 Introduction - The Problem of Constrained
+1.1 Probability as Belief . . . . . . . . . . . . .
+1.2 Answer Spaces - Avoiding Ambiguity . . . .
+1.3 The Solution . . . . . . . . . . . . . . . . .
+1.3.1 Projects Aims . . . . . . . . . . . . .
+
+Resources
+. . . . . . .
+. . . . . . .
+. . . . . . .
+. . . . . . .
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+2 The Essence of Inference, BP, PGM’s, and CSP’s
+2.1 Probabilistic Graphical Models . . . . . . . . . . . . . . . . .
+2.1.1 Factor graphs . . . . . . . . . . . . . . . . . . . . . . .
+2.1.2 Cluster graphs . . . . . . . . . . . . . . . . . . . . . . .
+2.1.3 LTRIP . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2.2 Inference and Loopy Belief Propagation . . . . . . . . . . . . .
+2.2.1 The Sum-Product Algorithm (Schaefer-Shenoy) . . . .
+2.2.2 The Belief-Update Algorithm (Lauritzen-Spiegelhalter)
+2.2.3 A Measure of Convergence . . . . . . . . . . . . . . . .
+2.3 Map Colouring and Sudoku . . . . . . . . . . . . . . . . . . .
+3 The Model - From Semantics to Structure
+3.1 The Information At Hand . . . . . . . . .
+3.1.1 The Descriptors . . . . . . . . . . .
+3.2 Focusing on solutions not data . . . . . . .
+3.3 The Status Quo System . . . . . . . . . .
+3.4 Appended Projects System . . . . . . . . .
+3.5 The Hybrid System . . . . . . . . . . . . .
+4 Coding the Model
+4.1 Importing The Data . . .
+4.2 Input Checks . . . . . . .
+4.3 Output Validation Checks
+4.4 Coding the Factors . . . .
+4.5 Various Other Functions .
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+iv
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+
+1
+2
+2
+3
+3
+
+.
+.
+.
+.
+.
+.
+.
+.
+.
+
+4
+4
+7
+8
+9
+9
+10
+11
+12
+12
+
+.
+.
+.
+.
+.
+.
+
+13
+13
+14
+14
+20
+23
+23
+
+.
+.
+.
+.
+.
+
+25
+25
+25
+26
+26
+27
+
+5 Solving the Model, Investigating and Validating Results
+5.1 A Preliminary Simulation - Chaos and Uncertainty . . . .
+5.2 Cross Implementation Testing . . . . . . . . . . . . . . . .
+5.3 Status Quo System Simulations . . . . . . . . . . . . . . .
+5.4 Appended Project System Simulations . . . . . . . . . . .
+5.5 Hybrid System Simulations . . . . . . . . . . . . . . . . . .
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+.
+.
+.
+.
+.
+
+28
+28
+29
+31
+33
+36
+
+6 Conclusions and Possible Improvements
+38
+6.1 The Nuances of PGM’s . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38
+6.2 The Importance of Diversity . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+6.3 Final Comments and Recommendations . . . . . . . . . . . . . . . . . . . . 39
+A Project Planning Schedule
+
+42
+
+B ECSA Outcomes Compliance
+
+43
+
+C PGM Graph Snippet
+
+45
+
+D CSV Code
+
+46
+
+E PGM Code Snippets
+
+48
+
+F Code Structure
+
+51
+
+v
+
+List of Figures
+2.1
+2.2
+2.3
+
+Graphs with undirected and directed edges respectively . . . . . . . . . . .
+Example clique . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+Cluster loops not satisfying and satisfying the Running Intersection Property (RIP) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+Simulation observing the effect of different input noise, project choice distributions, and number of projects supplied on convergence behaviour . . .
+5.2 Simulation observing the effect of different input noise, project choice distributions, and number of projects supplied on optimal project allocations
+5.3 Cumulative project allocation graph showing three different instances of
+simulated project choices comparing the performances of the PGM implementation vs Google’s MIP OR-Tools implementation to allocate more
+preferenced topics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.4 Status quo simulation observing the effect of a scored list of projects vs an
+ordered list of projects on the convergence behaviour . . . . . . . . . . . .
+5.5 Status quo simulation observing the effect of a scored list of projects vs an
+ordered list of projects on optimal project allocations . . . . . . . . . . . .
+5.6 Appended project system simulation comparing two different lengths of
+preferred projects lists and their effect on optimal project allocation . . . .
+5.7 Convergence plot for appended project system observing the effect of different lengths of weighted projects lists on the convergence behaviour . . .
+5.8 Cumululative project preference allocation plot for appended project system observing the effect of different lengths of weighted projects lists on
+optimal project allocations . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.9 Normalized project preference scatter showing the effect of different gaps
+between chosen projects and appended on project probabilities . . . . . . .
+5.10 Cumulative preference plot for hybrid project system observing the effect of
+different probability gaps between chosen projects and appended projects
+on optimal project allocations . . . . . . . . . . . . . . . . . . . . . . . . .
+5.11 Convergence plot for hybrid project system observing the effect of different probability gaps between chosen projects and appended projects on
+convergence behaviour . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+4
+6
+7
+
+5.1
+
+vi
+
+30
+30
+
+31
+32
+33
+34
+35
+
+35
+36
+
+37
+
+37
+
+List of Tables
+2.1
+
+Discrete factor table example for a coin flip . . . . . . . . . . . . . . . . . .
+
+Factor describing the student-project problem given an inefficient RV choice.
+Concerning three students and four projects. All possible different configurations need to be written out for to adequately describe the problem. . .
+3.2 Factor describing the constraint of student i can only be allocated 1 project
+via binary potentials . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.3 Factor describing the constraint of project j can be either allocated or not
+allocated to any student via binary potentials . . . . . . . . . . . . . . . .
+3.4 Factor describing the constraint of project j can be either allocated or not
+allocated to any student with the added RV of project usage . . . . . . . .
+3.5 Factor describing the different combinations of possible projects lead by
+lecturer 1. Given the minimum lead projects of 2 and a maximum of 3. . .
+3.6 Factor describing the constraint of student i can only be allocated 1 project
+with added Gaussian noise over the potentials, to unlock equal probabilities.
+3.7 Factor describing how lecturer preferences are declared via potentials, based
+off an arbitrary weighting given to the projects they present. . . . . . . . .
+3.8 Factor describing how project preferences are declared via potentials, based
+off a score calculated via the projects descriptors and the students preferences.
+3.9 Factor describing how project preferences are declared via potentials, based
+off an arbitrary weighted project preference list chosen by a student. . . . .
+3.10 Factor describing how project preferences are declared via potentials, based
+off a weighted project preference list chosen by a student, with scored
+projects appended. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+5
+
+3.1
+
+vii
+
+15
+16
+17
+18
+19
+20
+21
+22
+23
+
+24
+
+Nomenclature
+Abbreviations
+CSP
+
+Constrained Satisfaction Problem
+
+PGM
+
+Probabilistic Graphical Model
+
+AI
+
+Artificial Intelligence
+
+RV
+
+Random Variable
+
+BN
+
+Bayesian Network
+
+MRF
+
+Markov Random Field
+
+FG
+
+Factor Graph
+
+CG
+
+Cluster Graph
+
+MAP
+
+Maximum a Posteriori
+
+RIP
+
+Running Intersection Property
+
+LTRIP
+
+Layered Trees Running Intersection Property
+
+EM Algorithm
+
+Expectation Maximisation Algorithm
+
+FFT
+
+Fast Fourier Transform
+
+BP
+
+Belief Propagation
+
+RBP
+
+Residual Belief Propagation
+
+EMG
+
+Electromyography
+
+KL divergence
+
+Kullback–Leibler Divergence
+
+UML
+
+Unified Modelling Language
+
+CSV
+
+Comma-Separated Values
+
+MIP
+
+Mixed Integer Programming
+
+viii
+
+Functions and Variables
+x Py
+
+Permutations of x choose y objects
+
+Scope[φ]
+
+Scope of factor φ defined as set of RV’s δ
+
+φ(δ) = R+
+
+Factor definition
+
+Ca
+
+Cluster a
+
+S
+
+Sepset
+
+T
+
+Cluster Graph
+
+ℵ
+
+Set of factors (φ)
+
+ψi (Ci )
+
+Initial cluster beliefs
+
+β(Ca )
+
+Cluster belief
+
+β 0 (Ca )
+
+Updated cluster belief
+
+δa→b
+
+Denotes message
+
+σa→b
+
+Updated message
+
+D(a k b)
+
+Kullback Leibler divergence
+
+dom{. . . }
+
+Domain of variable
+
+Xi,j
+
+student-project pair RV
+
+Yj
+
+project usage RV
+
+X
+
+Matrix of student-project pair RV
+
+Si
+
+Student preference structure
+
+Pi
+
+Project descriptor structure
+
+L/M/A/K
+
+Weighted lists of lecturers/modules/activities/knowledge areas
+
+< a, b >
+
+Defines pair a and b
+
+ix
+
+Chapter 1
+Introduction - The Problem of Constrained Resources
+Constrained satisfaction problems (CSP’s) are encountered regularly. Examples of these
+kinds of problems include sudoku, map colouring, scheduling, diagnosis, and even some
+cryptography. CSP’s are under extensive research in the fields of Artificial Intelligence
+and Constraint Programming [1]. As such, there exist many different procedures for solving these problems. Explicitly constrained satisfaction problems are defined as solving the
+states of sets of objects (called configurations), based on certain constraints or criteria [2].
+Typically they are solved via search algorithms - backtracking, constraint propagation
+etcetera.
+However, this project aims to apply probabilistic graphical models (PGM’s) to these kinds
+of problems. The hypothesis is that PGM’s can be applied to efficiently solve CSP’s, and
+therefore optimise resource allocation. In literature, this method of solving constrained
+satisfaction problems is known as backtrack-free methods [2]. The primary focus of the
+project is based on solving how one can best fit final year students - given their certain
+preferences or project choices - and projects together.
+This problem, as with other the other mentioned CSP’s, are logical in nature, and the
+issue of solving them lies in the dependencies between the variables and constraints. Such
+that the entire space of solutions become intractable to compute in linear time. And thus
+the approach of PGM’s is to ’encode’ the constraints into the structure of the model and
+approach the problem probabilistically using message passing and inference. The PGM
+should converge to some hopefully correct answer within a reasonable amount of time.
+The message passing technique forms one of the core aspects of the elegance of PGM’s.
+Efficient and effective methods are a crucial requirement to achieve reasonable answers
+within a reasonable computational time frame. The methods are therefore very detailed
+and nuanced and are only discussed in an abstracted manner.
+To highlight, for the current problem, how the full solution space becomes exponentially large in size is: Given for the sake of example, 100 students, and 120 projects. The
+possible different allocations are shown in equation (1.1). An undeniably incomputable
+number 1 .
+120!
+≈ 2.75 · 10180
+(1.1)
+120 P100 = P (120, 100) =
+(120 − 100)!
+The nuance of PGM’s is that the solution requires the definition of various smaller localized distributions. Then local propagation can be used to solve the CSP. If the smaller
+localized probabilities aren’t constructed then some form of a joint probability distribu1
+
+Consider number of atoms in universe estimated 1078 to 1082 [3]. How many universes are needed to
+even encompass that number?
+
+1
+
+tion must be calculated. Noting that the joint describes all possible configurations which
+in most cases is intractable to compute as previously discussed [2].
+
+1.1
+
+Probability as Belief
+
+As an introduction to the perspective of how PGM’s handle CSP’s and as a fundamental
+preliminary discussion. The view of probability needs to be discussed, as this gives insight
+into the thought process behind solving these problems. Often probabilities are described
+such that they are to be viewed via events or experiments. Effectively saying that after an
+infinite amount of repetitions of an event, such as a coin toss, the probabilities of certain
+outcome converge to a specific answer.
+The perspective of probability more suited here is viewing probabilities as a degree of
+belief in a certain event. This allows one to discard the notion of having to repeat events.
+This hints towards a Bayesian view and is held by several of the works of literature which
+discuss the fundamental PGM theory [4] [5].
+Considering the current student-project problem highlights this issue quite well. It would
+be futile to ask what is the probability that a student could be allocated one specific
+project, given all the preferences of all the students, and somehow repeat that over and
+over. Since neither the preferences nor the projects change. It, however, is more logical to
+declare specific beliefs through some model that each student prefers particular subjects.
+At that point, the information is handed over to the PGM and using methods that are
+described in detail later, the model utilises those beliefs to come to some conclusion.
+The methodology behind designing graphical models is slightly different from the conventional machine learning approach. Graphical models are not learnt from any set of
+data. Instead, they are derived by someone and the conditional probability tables are
+manually set up. From here new data, in the form of observations, may be added and
+inference can be drawn from specific results.
+
+1.2
+
+Answer Spaces - Avoiding Ambiguity
+
+There is also an issue of ambiguity in the student-project problem. This occurs when
+two students have an equal preference for a project. Therefore there is more than one
+possible solution. A similar problem of a non-singular solution space is also faced in the
+four colour map problem [6]. However, the fundamental concern here is finding one ’most’
+optimal solution.
+This is more clearly illustrated through the fact that if two students have an equal preference towards specific subjects, how can an impartial decision be made, to whom the
+project should be allocated. Unfortunately, PGM’s are cold, unwavering, and highly unhelpful in this regard. When problems like this are faced a smidgen of Gaussian noise
+must be added. This shakes the system loose and unlocks equal probabilities. Specific
+cases are discussed further in subsequent chapters.
+2
+
+1.3
+
+The Solution
+
+Now given the identified problem of allocating students and projects together, and given
+PGM’s as the solution methodology utilized. The discussion of the design, implementation, and solution needs addressing.
+Because this methodology is infrequently used, the problem not only requires new thought
+patterns. But also the ability to split the holistic problem into numerous smaller problems.
+Solving them in both procedural and non-procedural senses. Specifically, the problem requires the identification of constraints, then translating the constraints into a declarative
+representation. Further ensuring the constraints can be localized, and declaring them
+into a form that is sparse enough to be utilized by a PGM, and from there defining the
+graphical model.
+Additionally, the model needs to be coded utilising procedural and structured methods.
+Thereby utilizing technology to compute results not viable by hand. Finally, these results
+require investigation and discussion to substantiate their validity.
+
+1.3.1
+
+Projects Aims
+
+• Identify the problem of allocating students to projects;
+• Describe how a PGM could solve this problem;
+• Code defined problem via a PGM model, in c++, using the EMDW package;
+• Investigate results, validate them, and suggest improvements;
+• Convey, describe and substantiate the theory and background of inference, BP,
+PGM’s, and CSP’s;
+• Develop a function which one can weight and order students to projects and use
+this in analyses;
+• Expand on the greater applications of PGM’s to solve CSP’s or other problems.
+Finally, this project serves as a proof of concept that PGM’s can not only highly efficiently
+and effectively solve CSP’s, as previously applied in the literature. But also CSP’s that
+have some further notion of a heuristic preference embedded within them. The project
+outlines the procedure taken to solve one specific instance of a CSP. Highlighting some
+key findings into the nuances in developing and solving these models.
+First and foremost, before the problem itself is delved into. The theory behind the
+methodology needs to be considered.
+
+3
+
+Chapter 2
+The Essence of Inference, BP, PGM’s,
+and CSP’s
+Various Literature Reviews
+This chapter highlights the crucial theoretical aspects of PGM’s and belief propagation.
+The relevant methods and principals from the literature are highlighted and investigated.
+Many of the methods included are discussed somewhat abstractly as their intricate applications are beyond the scope of this project. They are included for the sake of interest
+and comprehensiveness. In the subsequent chapter, the problem at hand is solved in a
+manner that is withdrawn from the theoretical background.
+
+2.1
+
+Probabilistic Graphical Models
+
+Probabilistic Graphical Models are graphs that visually depict some fundamental structure - conditional independences - between various groups of random variables. These
+groups are called vertices and are connected via edges. In general PGM’s are representations of distributions, which are denoted as factors, or clusters [4]. Two examples of
+graph structures are shown below in Figure 2.1, with undirected edges and directed edges
+respectively.
+B
+
+B
+
+C
+
+A
+
+C
+
+A
+
+D
+
+D
+
+Figure 2.1: Graphs with undirected and directed edges respectively
+
+Graphical models have a diverse history with publications including fields of physics [7],
+genetics [8], as well as in medicine [9]. Pearl’s textbook on probabilistic reasoning, as well
+as a paper on efficient reasoning by Lauritzen and Spiegelhalter, proved crucial to the
+consensual acceptance of probabilistic graphical methods [10]. The literature describes
+4
+
+PGM’s as the utilization of a graph structure to encode and explain a complex and intricate distribution over some high-dimensional space [10].
+Random variables
+Random variables, or RV’s, are stochastic variables which have specific states in its domain
+Ω mapping to an outcome f (ω ∈ Ω) = X. Discretely defined RV’s are primarily utilized in
+this project. However, in general, they can be continuous. Taking the simple example of a
+coin flip. The RV would be binary in nature and defined as: ω ∈ {Ω : 0 = tails, 1 = heads}.
+RV’s form the basis for model development in PGM’s.
+Factors and discrete tables
+This is an effective and neat declarative method to specify discrete potentials or probabilities. Given states for certain RV’s as δ. The factor is defined as a function φ(δ) = R+ .
+The set of RV’s δ is defined as the scope of the factor, denoted as Scope[φ]. Only nonnegative factors are concerned here. Factor tables are also non-normalized, such that the
+entries do not have to sum to unity. This declarative representation is built further over
+the RV’s as another fundamental step in model development. Continuing the previous
+coin example factor table for ω would be defined as:
+Table 2.1: Discrete factor table example for a coin flip
+ω
+φ(ω)
+0 = tails
+0.5
+1 = heads 0.5
+Such that the scope is Scope[φ] = ω. Note that in this example the factor is normalized,
+but this is not generally true.
+There exist a multitude of operations that occur on factor tables that are not described
+in detail, they include operations such as marginalization, products, division, and more.
+There are also two variations of the operations, standard conditional probability operations and Maximum a Posteriori (MAP) operations. The latter being of more interest
+because it serves to find the assignment of variables which maximises the joint, in the
+form of [10]:
+MAP(X|y) = arg max P (x, y)
+x
+
+For the current student-project problem the MAP solution will result in the most like
+joint assignment.
+Graphs
+There is a variety of different implementation of PGM’s, such as Bayesian Networks (BN),
+Markov Random Fields (MRF), Factor Graphs, and Cluster Graphs. Not all apply to this
+project and each has different criteria to be valid. Cluster graphs form the primary focus
+within the context of this project, with a brief mention of the factor graph. The EMDW
+package uses cluster graphs. However, the majority of the literature suggests factor graphs
+are the most commonly utilized. This is because they are simpler to set up, but lack some
+of the finesse and computational capability encompassed via the cluster graph [6].
+Cliques and maximal cliques
+A maximal clique is one whose vertices are maximally connected, and form a subset of
+5
+
+the graph. All members of the clique are connected, as shown in Figure 2.2, no longer
+larger clique can be made from a maximal-clique [4]. This is crucial to identifying clusters.
+Cliques form part of most initialisation steps in setting up message passing algorithms
+[10].
+
+B
+
+A
+
+C
+
+D
+Figure 2.2: Example clique
+Loopy graphs
+If there are multiple paths between one vertex x to vertex y then the graph is defined
+as loopy, otherwise, it is defined as singly-connected [4]. Loopy graphs present problems
+with belief propagation since loops allow variable beliefs to be passed around the loop
+causing self-reinforcement. Trees have the guarantee that they will converge and converge
+to a single correct answer, and all trees are defined as singly connected.
+However, most of the interesting problems that PGM’s are applied to are loopy in nature.
+Such as the current student-project problem. If a graph is loopy, the guarantee that it will
+converge to the correct answer, or even converge at all is unfortunately no longer true [10].
+Thus necessitating effective message passing techniques attempting to best ensure reasonable solutions. This is a further reason that cluster graphs are deemed the more
+optimal graph choice, as they almost always ensure better results than factor graphs [6].
+Further emphasising the problem of loopy graphs is found in Pearl’s belief propagation
+techniques. He reported that the rules developed for singly connected networks produced
+incorrect results in multi-connected networks [11]. More promising results of loopy belief
+propagation were accidentally achieved through the error-correction turbo codes [12].
+Sepsets
+Described as the variables that two clusters have in common with one another. Clusters
+Ca , Cb have sepset of variables Sa,b ⊆ Ca ∩ Cb . In all cases of belief propagation, sepsets
+form core to message formation. In most, but not all cases, sepsets are the marginal of
+the joint variables the clusters have in common, these variables are marginalized to pass
+the cluster’s beliefs about the variables to each other. The exception being in cluster
+graphs where a shared variable may not be connected to satisfy the running intersection
+property [10].
+
+6
+
+Rather a simple notion, but one important aspect that requires some attention is sepset
+belief, and is calculated as:
+β(Sa,b ) = δa→b · δb→a
+
+(2.1)
+
+The sepset belief serves as the fundamental measure from which the EMDW system tracks
+convergence, using the KL divergence between updates, as discussed later in section 2.2.3.
+Running intersection property
+For every pair of clusters Ca , Cb and variable ω ∈ Ca ∩ Cb there exists a singular unique
+path between the two clusters (Ca , Cb ) in which all clusters and sepsets contain ω. Essentially this means all clusters C and sepsets S containing some variable ω must form a
+tree [10].
+This forms a fundamental part of the LTRIP algorithm and is a core to effective belief propagation within graphical models. If one had to consider a tight loop of clusters
+Ca , Cb , Cc , as shown in Figure 2.3 which all form a clique and all contain the sepset variables γ, if the RIP was not satisfied and all were fully connected, one could easily picture
+that what Ca propagates about γ will continue around the loop - to Cb then Cc - till
+reaching itself again. This forms a sort of self-reinforcement loop, skewing results. This
+effect is reduced by ensuring that the cluster graphs satisfy the RIP. Koller refers to this
+self reinforcement as ”cyclic arguments” [10].
+
+CA
+
+CA
+γ
+CC
+
+γ
+
+γ
+γ
+
+CC
+
+CB
+
+γ
+CB
+
+Figure 2.3: Cluster loops not satisfying and satisfying the Running Intersection Property
+(RIP)
+As a final remark this, unfortunately, does not eliminate this self-reinforcement phenomenon but does greatly reduce it. For example, this effect can also exist if variables
+with strong correlations form loops [10].
+
+2.1.1
+
+Factor graphs
+
+More common in practice, due to their simplicity to set up. Factor Graphs can, however, only pass univariate messages, thereby not allowing any correlation inter-variable
+[6]. Factor graphs are used in many different applications, and algorithms widely used
+are special cases of the belief propagation algorithm such as Kalman Filters, decoding
+messages (Turbo Codes), the EM algorithm, and even some FFT’s. All of which deserve
+an explanation, but are far beyond the scope of this work [13] [14]. Since factor graphs
+are not implemented within this project a more detailed discussion is avoided.
+7
+
+2.1.2
+
+Cluster graphs
+
+Cluster graphs are defined as: A cluster graph T , contain clusters Ci , in a undirected
+graph, and are generally non-unique.
+The properties in order for cluster graph to be valid are:
+1. Clusters are subsets of factors Ci ⊆ ℵ, where ℵ is the set of factors φ.
+2. Clusters are nodes
+3. Nodes are connected by non-empty sepsets Si,j ⊆ Ci ∩ Cj
+4. Sepsets satisfy the running intersection property.
+5. Graph satisfies family preservation.
+Family preservation
+Factors are all encompassed by clusters. So for every φa ∈ Φ there is a cluster Cα(a) such
+that Scope[φa ] ⊆ Cα(a) [10]. This ensures no factors are disconnected from the rest of the
+graph.
+The initial beliefs or potentials of clusters are defined as the product of all factors assigned to it:
+Y
+ψi (Ci ) =
+φk
+(2.2)
+k:α(k)=i
+
+Cluster beliefs are calculated and defined as:
+βa (Ca ) = ψi ·
+
+Y
+
+δb→a
+
+(2.3)
+
+b∈χi
+
+And the calibration or convergence between clusters is defined as:
+X
+X
+βi =
+βj
+Ci −Si,j
+
+(2.4)
+
+Cj −Si,j
+
+Equation (2.2) defines the initial potentials over the variables associated within the cluster.
+Equation (2.3) states how belief is updated with incoming messages, and equation (2.4)
+defines when two neighbouring clusters agree on all the variables they have in common.
+Convergence is the ultimate goal in belief propagation techniques but is not commonly
+achievable due to loopy graphs. Therefore some threshold is normally set up that determines when the answer is deemed ’close enough’.
+Noting the the clusters ’agree’ only on the variables in the sepset, and not necessarily
+the joint marginal of the variables the clusters have in common, because Si,j ⊆ Ci ∩ Cj .
+Cluster graphs have the advantage of faster convergence and an increase in accuracy
+compared to Factor Graphs [6]. But initialising the graph is neither unique nor trivial.
+Necessitating the developed LTRIP algorithm for the automatic generation of Cluster
+Graphs.
+8
+
+2.1.3
+
+LTRIP
+
+The algorithm name stands for Layered Trees Running Intersection Property. As the name
+clearly states, trees are defined and layered to satisfy the running intersection property;
+as previously discussed. Thus establishing a valid Cluster Graph. The algorithm works in an abstract sense - as follows:
+(i) A weighting is established between adjacent cluster pairs as the number of variables
+shared.
+(ii) A further step emphasizes clusters with the more connections by adding to the
+weighting, the number of neighbours each cluster has with the ’global maximal
+connection weight’.
+(iii) Trees are defined for each random variable Xi based off all the connections in the
+cluster graph T .
+(iv) To establish a tree, branches are chosen based on the weighting factor calculated.
+In other words, trees are chosen as those who maximise the sepset size between
+clusters.
+(v) The trees are then layered for each RV i.
+(vi) The layers are superimposed on one another.
+(vii) Sepsets are formed as the union of the variables shared between two clusters.
+With a method for initialising Cluster Graphs which are valid and well structured described. Focus can now shift to the belief propagation or message passing strategies.
+
+2.2
+
+Inference and Loopy Belief Propagation
+
+Because calculating the full joint probability becomes intractable in most interesting problems, it was necessary for the development of algorithms which allowed some useful answer
+to be retrieved from the graph [10]. The resulting procedures involved utilizing the local
+probability densities to propagate what their ’belief’ is about some RV’s to the other
+dependent densities until some final result could be achieved. The result is each of the
+probability densities in an updated form that is a pseudo-marginal of the full joint. Thus
+the marginals of the joint are computed without ever actually calculating the joint.
+There are two very different approaches in the message passing schemes in practice. One
+restructures or at least requires the graphical model to obey some tree structure such that
+exact inference can occur, this work was covered extensively by Pearl [11]. However, he
+was not convinced of the results when his algorithm was applied in loopy graphs. The
+other is loopy belief propagation which is utilised in this project.
+The algorithms for exact inference always convergence, and do so much faster than the
+loopy algorithms [10]. However disconcerting this fact is, work in turbo codes proved that
+useful results from loopy belief propagation possible [12]. Literature hints that specific
+messages perform much better than others, i.e. synchronous vs asynchronous are worse
+and better respectively. But synchronous is easier to set up, and asynchronous poses the
+9
+
+problem of message passing orders. Which influences convergence and convergence rates
+[10].
+The EMDW system utilises two different methods of belief propagation. The belief propagation algorithm or Shafer-Shenoy algorithm and the belief update algorithm, which is
+the Lauritzen-Spiegelhalter algorithm. Both are described abstractly below. There also
+exists other methods of intelligent message passing such as tree reparameterization which
+are not discussed further [10].
+More accurately, the two methods used by the system are examples of residual belief
+propagation (RBP). Which describe procedures which pass messages between two clusters whose beliefs over the sepset disagree the most. The method utilises a message
+priority queue. Ordered according to the level of disagreement, and passes messages from
+that queue.
+A paper published by Elidan highlights the need for an informed message scheduling procedure, in place of an oblivious method, such as round-robin message passing. The paper
+notes that graphical models exhibit a phenomenon where portions of a graph converge
+much faster than others. This phenomenon is used as a motive for informed scheduling,
+asserting that priority should be given to the portions of the graph that disagree the
+most. Additionally, they note that the current state of a message should influence the
+order of the message passing schedule. Thus residuals are defined which quantify the state
+of the messages, this state is then utilised to queue the messages. Messages are computed
+according to the queue, next the dependent messages are recalculated, and finally, the
+queue is reordered. Therefore belief propagating occurs in a more informed and purposeful manner [15].
+Their testing showed the RBP schedule improved substantially over the uninformed scheduled and even further over other cutting-edge methods. This improvement was in terms
+of runtime until convergence, the percentage of runs converged, and convergence success
+[15].
+
+2.2.1
+
+The Sum-Product Algorithm (Schaefer-Shenoy)
+
+The first method through which beliefs are propagated in graphical models is now investigated. The focus is entirely on the application within Cluster Graphs, but of course, this
+is also - most often - applied to Factor Graphs. It is important to note again that this
+calculation does not give the exact marginals but instead a pseudo marginal, but results
+are still effective in practice.
+The definition of messages within the sum-product algorithm is [10]:
+X
+Y
+δa→b (Sa,b ) =
+ψa ·
+δc→a
+Ca −Sa,b
+
+(2.5)
+
+c∈(χa −{b})
+
+Equation (2.5) essentially states that all the messages going into the cluster, from which
+the message is being sent, are computed δc→a . Except for the message received from the
+cluster to which the message is being sent. Those messages are multiplied by the cluster
+belief ψa and all the variables that do not exist within the sepset between the two clusters
+10
+
+Ca − Sa,b are summed out. χa is defined as all the neighbours to cluster a.
+Max-Product Message
+As alluded to earlier the MAP form are the actual methods utilised in this implementation
+and are defined as [10]:
+Y
+δc→a
+(2.6)
+δa→b (Sa,b ) = max ψa ·
+Ca −Sa,b
+
+c∈(χa −{b})
+
+Literature states that the MAP equations converge less often than the sum-product alternative. This could be due to the lack of summations. Summations are conjectured to
+introduce a smoothing effect and reduce possible oscillations [10].
+Research into the efficiency of Lauritzen-Spiegelhalter vs Shafer-Shenoy in tree structures. Showed that Shafer-Shenoy was computationally more efficient than LauritzenSpiegelhalter [16].
+
+2.2.2
+
+The Belief-Update Algorithm (Lauritzen-Spiegelhalter)
+
+Analogous to the previous algorithm is the belief update algorithm whose messages are
+defined, in their MAP form as [10]:
+σi→j ← max βi
+Ci −Si,j
+
+βj0 ← βj ·
+
+σi→j
+µi,j
+
+µ0i,j ← σi→j
+
+(2.7)
+(2.8)
+(2.9)
+
+Where βi is maximised over the sepset between i and j and the belief of βj is updated via
+the new message belief σi→j divided by the previous message belief µi,j . Note that the
+initial value of µi,j is defined as 1.
+Research into the developed algorithm by Lauritzen and Spiegelhalter revealed their motivation was due to electromyography (EMG), and the MUNIN system. They note the
+usage of a causal network, which represents some knowledge, in their case, clinical into a
+graphical model [2].
+As mentioned numerous times previously, as the authors agree. The emphasis in graphical
+models is defining local probability distributions linked by relationships in a larger more
+complex network, and using efficient computational methods for inference and probabilistic operations.
+Something that has not been specifically addressed that is brought up by the authors, is
+mentioned to the validity of the model itself, that its setup and logical structure is ’true’,
+and that conclusions may be drawn. In the current student-project problem no model
+exists, therefore careful logical procedures are required to ensure that the defined model
+is valid, such that correct and logical answers can be achieved.
+Finally, the paper highlights the notion of logical links between vertices in a graph. Denoting them as a potential of 1 in a conditional probability table [2]. This is an advantageous
+insight which will be utilised for model development in chapter 3.
+11
+
+2.2.3
+
+A Measure of Convergence
+
+There was also a need to quantitatively measure how the system progresses towards
+convergence. The EMDW code uses the Kullback–Leibler (KL) divergence, defined in the
+discrete case as [17]:
+X
+a(n)
+(2.10)
+D(a k b) :=
+a(n) · log
+b(n)
+n
+This effectively serves as a distance measure between distributions and in the case of
+EMDW, it is used to measure the difference in updated sepset belief during the message
+passing procedure. Recall βa (Ca ). More specifically the graphs used to plot convergence
+behaviours, utilised later in the paper, are a plot of the greatest change in sepset belief
+(largest result from the KL divergence) between message updates.
+As a side note, the KL divergence is technically not a measure of distance in topology
+because it does not satisfy the triangle inequality. However, it has the advantage over a
+Euclidean distance measure in reference to probability because it takes into consideration
+orders of magnitude. i.e. 0.5 to 10−6 is, in the euclidean view a small distance, but in
+terms of probability is the difference between an event being likely, and nearly impossible.
+Various other works of literature also utilise the KL divergence as a measure of the ’mutual
+information’ between two vertices, very similar to the usage within the ENDW package
+[2], [15].
+
+2.3
+
+Map Colouring and Sudoku
+
+With the crucial aspects of PGM theory covered, the discussion can be turned to specific
+cases of constrained satisfaction problems.
+It is quite fascinating, and crucial - to note that most of these problems (map colouring, sudoku, kakuro) at their face appear very different. However once one peers into the
+semantics of the problem, it becomes clear that all are essentially the same in nature. The
+map colouring problem, for example, defines that adjacent nodes in some graph should
+not be the same colour; or more generally the same label [6]. Sudoku defines that a
+number can only appear once in each respective row, column, and block.
+All the highlighted problems - and for the matter of fact the current student-project
+problem - are labelling problems in undirected graphs with certain dependencies between
+the variables. From this certain cliques can be identified. That are essentially the clusters
+within the graph, and their interrelatedness; or more formally their dependencies. The
+factor that sets the student-project problem apart from the rest of the labelling problems
+is the requirement to optimize project allocation, declared via some preference potential
+in the model.
+
+12
+
+Chapter 3
+The Model - From Semantics to Structure
+As alluded to in the previous sections, a methodical thought process is required to solve
+the student-project problem - and for the matter of fact CSP’s in general. How to describe the constraints logically such that they can be encoded into a graphical model, is
+no trivial task. This chapter highlights that very process.
+The information available from the student-project problem is clarified. This information, the required result, and the theoretical methodology form the fundamental building
+blocks from which the different aspects - or sub-problems - of the model are developed.
+Each sub-problem requires procedural and iterative problem-solving techniques until a
+final useful model can be acquired. This includes defining the RV’s, identifying dependencies (or independences), and relating them or clustering them. BN’s are described as
+being good at describing independence in a model, but not dependence [10]. Therefore
+there should be a focus in model development in that regard. The procedure was generalized and is methodically laid out in section 6.1, this could aid in the application of
+PGM’s to other CSP’s.
+Encoding some logical constraints into the PGM is essentially the fundamental obstacle. It is rather interesting to observe that once these factors are constructed, that they
+convey some fundamental logical information that has been, translated into a declarative
+language which can be utilised by a graphical model. The translation is exactly why
+generating the factors is non-trivial.
+
+3.1
+
+The Information At Hand
+
+Given all the information of the students and their respective preferences, as well as all
+the projects and their descriptors and lecturers. The information should be laid out as
+methodically as possible. Thus attempting to ensure independences are not omitted and
+allowing hints towards structure development to reveal themselves. Emphasis is placed on
+the comprehensiveness of analysis, regardless of whether or not the hints will be utilized
+in the final model. Given the data, the information is grouped and identified via the
+following structures:
+• Students: S = dom{0, 1, 2, ..., N − 1}
+• Lecturers: L = dom{0, 1, 2, ..., X − 1}
+• Modules: M = dom{0, 1, 2, ..., 9}
+• Activities: A = dom{0, 1, 2, ..., 7}
+• Knowledge Areas: K = dom{0, 1, 2, ..., 16}
+13
+
+• Projects: P = dom{0, 1, 2, ..., M − 1}
+Since the problem is at its core a logical labelling problem and has no dependence on the
+’value’ of the label, the data can simply be anonymized to integer values, as shown. The
+true value behind the descriptors is discussed subsequently.
+
+3.1.1
+
+The Descriptors
+
+The first of the hints that reveals itself is that every student has a list of all {L, M, A, K},
+henceforth defined as the descriptors. But projects only list their relevant modules, knowledge areas, activities, and lecturer. This will aid in the development of the project preference scoring function in section 3.3.
+Projects
+Again, each project will have at least the following information:
+Pi = {Li , m ⊆ M, a ⊆ A, k ⊆ K}
+where m, a, k are all length 3, for example:
+P0 = {0, {0, 4, 5}, {1, 2, 3}, {11, 12, 13}}
+Students
+Each student, will have exactly the following information:
+Si = {L, M, A, K}
+In which each of the descriptors is a descending list of preference for each respective state.
+
+3.2
+
+Focusing on solutions not data
+
+The temptation exists very rationally, to begin with, the students’ preferences for the
+so-called project descriptors, condition or score those preferences based off the relevant
+projects, and then from there attempt obtain the best-suited projects for each student.
+But this leaves one backed into a corner of how the actual selection process occurs. So first
+the problem of allocations must be addressed, and then the preferences can be returned to.
+To more elegantly approach the problem the question begs what in essence does the
+model need to accomplish. For the student-project problem, the answer is, for each student an allocated project is needed. This, therefore, requires the creation of the first
+random variable. And is the first insight into one of the constraints that need to be satisfied. This RV that is needed must describe when a student receives a project and when
+a project is allocated to a student, formally the RV becomes:
+Xi,j ∈ {not allocated = 0, allocated = 1}
+
+(3.1)
+
+Where i,j in equation (3.1) are the students and projects respectively. And Xi,j = 1 when
+the project j is allocated to student i, and 0 otherwise, thus having a binary state space.
+
+14
+
+The choice of a binary RV over other configurations is far from trivial. The RV’s could
+have also been defined as Xi ∈ {0, 1, 2, 3, 4, 5, 6, 7 . . . M − 1} where the state is the project
+ID allocated to the student. This even appears more efficient. However, once one identifies the dependencies between these RV’s. It becomes clear that every RV is completely
+dependent on the others to describe the different project configuration states.
+At this point, it becomes a nightmare to work out the different valid or non-valid solution
+states. A simple 3 student, 4 project example is shown in table 3.1. The factor declares the
+first few possible configurations of the different states, noting that φ(X0 . . . ) = 1 defines a
+valid configuration and is 0 for all non-valid configurations. For larger problems iterating
+through the list to identify correct and incorrect configurations becomes intractable - as
+similarly described via equation (1.1).
+Table 3.1: Factor describing the student-project problem given an inefficient RV choice.
+Concerning three students and four projects. All possible different configurations need to
+be written out for to adequately describe the problem.
+X0 X1 X1 φ(X0 , X1 , X3 )
+1
+1
+1
+0
+1
+1
+2
+0
+1
+1
+3
+0
+1
+1
+4
+0
+1
+2
+1
+0
+1
+2
+2
+0
+1
+2
+3
+1
+..
+..
+..
+..
+.
+.
+.
+.
+4
+
+4
+
+4
+
+0
+
+Having defined a reasonable RV and substantiating why it is the more efficient choice.
+Focus now shifts to how they are interrelated, and thus begin defining the relevant factors.
+Firstly reasoning about the logic of the constraints and describing them in words leads to
+the following:
+• Each project can only be done by one student;
+• But if there are more projects than students, some projects need not be allocated.
+• Every student can only do one project;
+• But all students need one allocated project.
+Since these constraints are going to be modelled within a PGM they need to be declared
+and implied within a factor, thus allowing them to be utilized by the PGM.
+The RV in equation (3.1) defines for a singular student-project pair whether they are
+allocated together or not. But of course, as just described, a project can only be allocated
+once and a student can only do one project. These are two forms of dependencies that
+have just been identified.
+Considering the former, all the RV’s that considers a singular project are dependent on
+one another, in that if the first RV for a project is allocated to some student (Xi,0 = 1), no
+15
+
+other RV may be allocated (Xj6=i,0 = 0). This forms a sort of row or chain of dependency
+for a single project and every student (Xi,0 − Xi,1 − Xi,2 − . . . − Xi,M −1 ). The latter is
+similar in nature except that the dependency is now every RV that considers one student
+and all the projects (X0,j − X1,j − X2,j − . . . − XN −1,j ). Except all of the RV’s can be in
+the not-allocated state.
+This forms quite an elegant structure because the dependencies form a neat matrix, and
+are far from as convoluted as some CSP’s are. An illustration of the matrix describing
+project-student RV’s is shown in equation (3.2). A further comment on the structure of
+the dependencies is that although there will be loops in the graph, as shown in appendix
+C, the running intersection property is axiomatically satisfied because all the factors containing the RV’s for each student and project form a tree. This is highly fortunate and
+hints towards possible effective and efficient solutions.
+
+
+
+X0,0
+X1,0
+..
+.
+
+X0,1
+X0,1
+..
+.
+
+...
+...
+...
+
+X0,N −1
+X1,N −1
+..
+.
+
+
+
+
+
+
+
+X=
+
+
+
+XM −1,0 XM −1,1 . . . XM −1,N −1
+
+(3.2)
+
+Having now identified the relevant dependencies between RV’s. The factors can be defined. Referring back to theory in section 2.1 factor tables denote the mapping between
+the states of the dependent RV’s and their outcomes or potentials. Now considering
+the dependent rows or columns from the matrix (3.2). The dependencies are utilised as
+’structural’ constraints that declare what the valid configuration states are for the factors.
+The factors that arise from the ’structural’ constraints are:
+Considering first the RV’s only concerning one student at a time, but all projects. The
+constraint ’students need one project’ is applicable here. So for the RV’s Xi,0 − Xi,1 −
+Xi,2 − . . . − Xi,M −1 the factor table should encode this property for that student. Essentially the row should only ever have one RV in the allocated state.
+The case of ’projects can only be done by 0 or 1 students’ is very similar, except one
+more configuration exists such that all RV’s can be in the non-allocated state.
+To make the discussion more concise and less convoluted the developed factors are shown
+and then discussed. Considering M students and N projects. The factor describing the
+constraint of a student can only do 1 project is shown in table 3.2. And the factor describing the constraint of projects can only be done by 0 or 1 students is shown in table
+3.3.
+
+Table 3.2: Factor describing the constraint of student i can only be allocated 1 project
+via binary potentials
+16
+
+Xi,0
+0
+0
+..
+.
+
+Xi,1
+0
+0
+..
+.
+
+0
+1
+
+1
+0
+
+...
+...
+...
+
+Xi,N −2
+0
+1
+..
+.
+
+...
+0
+...
+0
+otherwise
+
+Xi,N −1
+1
+0
+..
+.
+
+φ(Xi0 , Xi1 , . . . , Xi,N −2 , Xi,N −1 )
+1
+1
+..
+.
+
+0
+0
+
+1
+1
+0
+
+Table 3.3: Factor describing the constraint of project j can be either allocated or not
+allocated to any student via binary potentials
+X0,j X1,j . . . XM −2,j XM −1,j φ(X0,j , X1,j , ..., XM −2,j , XM −1,j )
+0
+0
+...
+0
+0
+1
+0
+0
+...
+0
+1
+1
+0
+0
+...
+1
+0
+1
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+0
+1
+
+1
+0
+
+...
+0
+...
+0
+otherwise
+
+0
+0
+
+1
+1
+0
+
+To explain this further. Consider the first row of RV’s from table 3.3, φ(X0,j = 0, X1,j =
+0, . . . , XM −1,j 0) = 1. They declare that for every RV (X0,j = 0, . . . , XM −1,j = 0). That
+the project j is not allocated to any specific student. So it satisfies that a project need
+not be allocated. The rest of the rows only one RV is allocated (for example XM −2,j = 1
+in row 3). This satisfies that each project j can only be allocated to one student.
+These two factors exist for every row and column, fully comprising all the different student
+project pairs.
+The importance of line otherwise | 0 in the above two tables 3.2, 3.3 cannot be overstated. This reduces the possible number of discrete entries in the factor from a hopelessly intractable problem as shown in equation (3.3), to one that is, in fact, linear
+≈ P (120, 1) = 120. The significance of dodging these large factors has been discussed ad
+nauseam, but it forms a crucial aspect in creating an effective model.
+120
+X
+
+P (120, X) = P (120, 120) + P (120, 119) . . . ≈ 1.329 · 1036
+
+(3.3)
+
+x=0
+
+Some further factors:
+There’s also the issue of which lecturer’s present which projects. Since this is part of the
+information input into the system, the assumption is made that exactly which projects
+each lecturer presents is known. There is, therefore, a certain amount of freedom with how
+many projects the lecturer need present since there is not the same number of projects as
+students. Therefore a pair is defined for each lecturer as shown in equation (3.4). Defining
+the minimum a and maximum b number of possible projects they can present, and any
+number in between in also considered valid.
+Lx =< a, b >
+17
+
+(3.4)
+
+This highlights a further problem that it needs to be exactly clear when specific projects
+are being utilised1 . Thus an intermediary RV should be defined, not unlike the previous
+in equation 3.1, which states whether or not a project is utilised. This new RV will still be
+dependent on the different rows concerning project allocation (X0,j = 0, . . . , XM −1,j = 0),
+and it is added to those factors. The RV is formally described:
+Yj ∈ {0, 1}
+
+(3.5)
+
+Where j are the M − 1 projects. Yj = 1 when the project j is allocated to any of the
+respective students, and 0 otherwise, thus also having a binary state space. From the
+factor shown in table 3.4 it is clear to see that the project usage RV is encompassed into
+the previous factor, and is in the state Yj = 1 when any one student is allocated to a
+project j.
+Table 3.4: Factor describing the constraint of project j can be either allocated or not
+allocated to any student with the added RV of project usage
+X0,j X1,j . . . XM −2,j XM −1,j Yj φ(X0,j , X1,j , . . . , XM −2,j , XM −1,j , Yj )
+0
+0
+...
+0
+0
+0
+1
+0
+0
+...
+0
+1
+1
+1
+0
+0
+...
+1
+0
+1
+1
+..
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+.
+0
+1
+
+1
+0
+
+...
+0
+...
+0
+otherwise
+
+0
+0
+
+1
+1
+
+1
+1
+0
+
+Now careful consideration needs to be taken in constructing the dependencies, because
+it is simple to consider all the projects in one list Y0 − Y1 − . . . − YM . From there
+attempting to arrange all the different possibilities of project usages, according to the
+pairs defined in equation 3.4. But this creates a factor with a large amount of different
+discrete possibilities, as shown in (3.6). Therefore not adhering to the notion of small
+local descriptions as discussed in literature [5].
+(5 P3 + 5 P4 + 1)X−1 = (P (5, 3) + P (5, 4) + 1)30 = 1630
+
+(3.6)
+
+The better procedure is to break the dependencies into each lecturers topics. The discrete
+entries then become much more sparse. For example given 30 lecturers all presenting the
+pair Lx∈{X−1} =< 3, 5 >, the entries become {P (5, 3)+P (5, 4)+1}·{X−1} = 16·30 = 480.
+This is once again a further insight into how carefully choosing the dependencies to encode
+into the factors avoids the problem becoming intractable.
+Now the declarations within the sparse enough factor need to be defined. Utilizing the
+pair defined in equation (3.4) and assuming lecturer 1 presents projects 0, 1, 2, and the
+lecturers pair is defined as < 2, 3 >. All the different combinations of projects being
+allocated or not allocated need to be stated, starting from the minimum pair value up to
+the maximum.
+1
+
+The discussion on another possible RV defining lecturer ID’s which present different projects and
+then utilising those IDs in factors to constraining the number of projects is avoided because it too falls
+prey to a less sparse state space
+
+18
+
+Table 3.5: Factor describing the different combinations of possible projects lead by lecturer
+1. Given the minimum lead projects of 2 and a maximum of 3.
+Y0 Y1 Y2 φ(Y0 , Y1 , Y2 )
+0
+1 1
+1
+1
+0 1
+1
+1
+1 0
+1
+1
+1 1
+1
+otherwise
+0
+From table 3.5, it is clear that at least two of the three projects are always presented by
+the lecturer and that all the different combinations are present.
+The Different Systems
+The previously defined factors and RV’s are the basic structural system that will theoretically be able to solve the underlying fundamental constraints. Now there is a certain
+amount of flexibility with how the final interfacing systems are structured that do the
+solving. Thus three systems are developed, differing in certain preliminary steps, and
+how the data is used. Each system has benefits and faults. All are heuristic in nature,
+and none can be defined to be the best-suited system. This, of course, is not a comment
+on the effectiveness of the PGM underlying the system. Each is described subsequently,
+beginning with a system that takes into consideration all the students preferences for
+project descriptors and projects themselves; the status quo system.
+Then all the student projects descriptor preferences are discarded and a system that
+allows students to pick their top N projects is designed - given from a N 0 number of
+different lecturers. Utilising the associated descriptors of those chosen projects, other
+projects are appended to the bottom of each student’s project list, thus attempting to
+ensure a valid solution space. This abstracts the students from submitting any descriptor
+based preference.
+Finally, a hybrid system is designed, that allows students to pick their top N projects,
+again given from N 0 lecturers. While still submitting their preferences through the ’project
+descriptors’, as done in the status quo system. The status quo system essentially then appends the rest of the projects to the student preference list underneath their top choices.
+This system is the most flexible and holistic.
+Gaussian noise revisited
+As alluded to in section 1.2, it will be without a doubt the case that two students will
+prefer one subject equally. To unlock the probabilities allowing allocation to take place a
+small amount of noise is added. In this case, Gaussian noise was used had the properties:
+µ=0
+σ = 1.0 · 10−3
+p(x) = √
+
+1
+2πσ 2
+19
+
+(x − µ)2
+−
+2σ 2
+·e
+
+(3.7)
+
+The noise was added onto the factor that describes that each student can do only 1 project
+and the factor in its new form is shown in table 3.6 2 . This simple solution avoids that
+’hitch’ in the armour of PGM’s.
+Table 3.6: Factor describing the constraint of student i can only be allocated 1 project
+with added Gaussian noise over the potentials, to unlock equal probabilities.
+Xi,0 Xi,1 . . . Xi,N −2 Xi,N −1 φ(Xi,0 , Xi,1 , . . . , Xi,N −2 , Xi,N −1 )
+0
+0
+...
+0
+1
+0.995073
+0
+0
+...
+1
+0
+0.998256
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+0
+1
+
+1
+0
+
+...
+...
+
+0
+0
+
+0
+0
+
+1
+0.99675
+
+A Graphical Visualisation
+All this seems quite abstracted from any kind of graphical structure, so utilizing the
+cluster graph created by the EMDW system, based on the above-described factors given
+the following information:
+• Lecturers: L1 , L2
+• Students: S1 , S2 , S3 , S4
+• Projects: P1 , P2 , P3 , P4 , P5 , P6
+Each lecturer presentation pair is defined as < 2, 3 >. The structure is plotted in C. This
+structure gives 30 RV’s as expected. 4 · 6 = 24 for projects and students, and 6 for project
+usage.
+The left-most column of RV’s (e.g. φ(0, 1, 2, 3, 4, 5)) are in fact each of the ’every student
+must have an allocated project’ factors as defined in table 3.2. The factors to the right
+of those are the ’every project needs 0 or 1 students’ as defined in table 3.3. Finally, to
+the far right are the ’lecturer must present these topics’ factors as defined in table 3.5.
+
+3.3
+
+The Status Quo System
+
+The Semantics of Preference
+Now some kind of weighting function needs to be developed that will allow mapping from
+students ordered descriptors to weighted projects. From the above section, it is known
+that each project only contains a few of the possible descriptors, and each student has an
+ordered list of all the descriptors.
+It was a design choice to split the preference for lecturers and descriptors into two factors,
+but this could have also been combined into one, keeping the two apart gives one slightly
+more freedom with how the two can be weighted.
+Lecturer Preference: Given that students provide some ordered list of lecturers, a
+factor needs to be developed from this. The temptation exists again to create a new RV
+2
+
+As a side note the factor is normalized after the noise is added, but that is more a concern for the
+belief propagation element.
+
+20
+
+that declares an ID for each lecturer. Then utilising the RV’s to declare the particular
+projects the respective leaders present and the students’ preferences for those projects.
+This, however, proves superfluous since a lecturer is more than adequately described
+through each of the projects they present, and RV’s that describe projects already exist
+within the framework. So the ordered weight can more simply just be imposed upon the
+projects which each lecturer present and not on the lecturers themselves. This keeps the
+structure of the graphical model as simple as possible - but no simpler3 .
+Given the example of student 0, having the following lecturer preference:
+LS0 = dom{3, 0, 1, . . . , X − 1}
+Each of the projects that the ordered lecturers do are all given the same score, in a
+decrementing fashion. So for the top lecturer 3, all the projects that the lecturer gives is
+given the maximum score of X − 1 and the second lecturer is given X − 2. To illustrate
+this through a factor, in much the same way as before, an arbitrary example is given in
+table 3.7.
+Table 3.7: Factor describing how lecturer preferences are declared via potentials, based
+off an arbitrary weighting given to the projects they present.
+Xi,0 Xi,1 Xi,2 . . . Xi,N −2 Xi,N −1 φ(Xi,0 , Xi,1 , . . . , Xi,N −2 , Xi,N −1 )
+1
+0
+0
+...
+0
+0
+26
+0
+1
+0
+...
+0
+0
+26
+0
+0
+1
+...
+0
+0
+3
+..
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+.
+0
+0
+
+0
+0
+
+0
+0
+
+...
+...
+
+1
+0
+
+0
+1
+
+2
+2
+
+Descriptor Preference: Now considering that every student provides a weighted list
+of project descriptors (M, A, K), and each project has a subset of those descriptors. The
+scoring algorithm works as shown in algorithm 1. This is done for all of the descriptors
+for each project and student. Therefore giving each student a score for every project.
+To make it absolutely clear a simple example this time utilising only activities. Say
+student 0 has the following preference:
+AS0 = {7, 5, 0, 1, 2, 6, 4, 3}
+And project 0 has the following descriptors:
+AP0 = {0, 6, 1}
+Project 0’s descriptors would be declared as, according to the algorithm:
+AP0 = {1, 1, 0, 0, 0, 1, 0, 0}
+then the scoring function would give:
+SˆA = 8 · 0 + 7 · 0 + 6 · 1 + 5 · 1 + 4 · 0 + 3 · 1 + 2 · 0 + 1 · 0
+3
+
+A tribute to Albert Einstein
+
+21
+
+Data: Ms - student module preferences array & Mp - project associated modules
+Result: Integer score value for student and project for module
+1 Mp is a binary array where values are 1 when module is associated to project and
+0 otherwise. Modules ID’s are associated to indexes;
+2 index ← size(Ms );
+3 foreach Ms do
+4
+if Mp at Ms equals 1 then // if project contains student preference
+5
+module score += index;
+6
+end
+7
+index ← index - 1;
+8 end
+9 score += module score / normalizing factor;
+Algorithm 1: Student Project Scoring Function Pseudo Code. Using modules as
+descriptor example.
+
+SA =
+
+6+5+3
+Ŝ
+=
+= 0.667
+norm
+8+7+6
+
+More extensively this is computed for each of the descriptors and added.
+S = SA + SB + SC
+Resulting in a final value out of 3 - then renormalized. The normalization for each
+descriptor occurs to ensure that all descriptors have an equal contribution to the final
+project score. Of course, this can be changed based on the will of the user. This is calculated for each student and project, thus giving all the final scores of project preferences.
+Now that the scores of the projects have been determined, how this is communicated
+within the graph must now be dealt with. Luckily this is essentially a rehash of the previous factor that states that each student must do one project, except now the probability
+of every project is no longer a logical allocated value of 1, but is now the score value of
+the project. And would appear as shown in table 3.8.
+Table 3.8: Factor describing how project preferences are declared via potentials, based off
+a score calculated via the projects descriptors and the students preferences.
+Xi,0 Xi,1 Xi,2 . . . Xi,N −2 Xi,N −1 φ(Xi,0 , Xi,1 , . . . , Xi,N −2 , Xi,N −1 )
+1
+0
+0
+...
+0
+0
+0.0353
+0
+1
+0
+...
+0
+0
+0.0619
+0
+0
+1
+...
+0
+0
+1
+..
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+.
+0
+0
+
+0
+0
+
+0
+0
+
+...
+...
+
+1
+0
+
+0
+1
+
+0.8495
+0.3628
+
+The factor in table 3.8 encompasses the majority of how the status quo system is built,
+this new factor is then combined with the other previously defined factors, which are all
+input into the EMDW system. Which constructs a cluster graph, does belief propagation
+and comes to some conclusion. The results of this implementation are discussed in section
+5.3.
+22
+
+3.4
+
+Appended Projects System
+
+Another approach to this problem, which avoids the intermediaries of the descriptors.
+Instead allows students to pick n of the favourite topics from n0 lecturers. The primary
+concern with this system is that the choices may be to too narrow for a valid solution
+space. In an attempt to avoid this problem, the descriptors from the students n” favourite
+projects are retrieved, and the other projects that contain these descriptors are found.
+These are then appended to the bottom of the list of the students’ selected projects.
+The appended projects are always placed at the bottom of the students’ list and thus
+serve as a last resort. Further, they are also ordered according to the position of the
+project from which the specific descriptors were acquired - i.e. descriptors from the students’ top project are weighted higher than the second and so on. This scoring function
+works similarly to that defined in algorithm 1. The values for n, n0 , n” are relatively
+arbitrary and can be chosen as willed.
+Table 3.9: Factor describing how project preferences are declared via potentials, based off
+an arbitrary weighted project preference list chosen by a student.
+Xi,0 Xi,1 Xi,2 . . . Xi,N −2 Xi,N −1 φ(Xi,0 , Xi,1 , . . . , Xi,N −2 , Xi,N −1 )
+0
+0
+1
+...
+0
+0
+20.0
+1
+0
+0
+...
+0
+0
+19.0
+0
+0
+0
+...
+1
+0
+18.0
+..
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+.
+0
+0
+
+0
+1
+
+0
+...
+0
+...
+otherwise
+
+0
+0
+
+1
+0
+
+2.0
+1.0
+0
+
+The factor shown in table 3.9 specifies arbitrary unnormalized weights given to the students’ preferred projects. In which the top n would be the students’ choices and the rest
+are the appended projects - n00 .
+As in the previous status quo system, this factor is used in unison with the others. The
+factors are all passed to the EMDW system. A cluster graph is constructed, the message
+passing procedure is completed and results in a final allocation; given that the inputs
+contain a valid solution. The simulations are discussed in section 5.4
+To further discuss the mentioned n0 value. In the developed code a preliminary check
+was added that ensured that enough different students chose each of the projects such
+that the ’lecturer must present a certain amount of projects’ factor may be satisfied, or
+that it is at least theoretically possible. As well as a check that ensured every project was
+chosen. They served as mostly an alert to when there may be no valid solution in the
+selections.
+
+3.5
+
+The Hybrid System
+
+A seemingly, best of both worlds system. Allowing the flexibility of students to explicitly
+state their favourite topics, while maintaining their descriptor choices, ensuring a large
+enough selection space for a valid solution. In this system, students pick their n favourite
+topics, while also submitting the weighted descriptors L, M, A, K. The system then as
+23
+
+before, weights all topics according to the descriptors and then overwrites the weights of
+the projects the students explicitly chose and scores those above the rest. This is quite
+neatly expressed in the factor shown in table 3.10.
+Table 3.10: Factor describing how project preferences are declared via potentials, based
+off a weighted project preference list chosen by a student, with scored projects appended.
+Xi,0 Xi,1 Xi,2 . . . Xi,N −2 Xi,N −1 φ(Xi,0 , Xi,1 , . . . , Xi,N −2 , Xi,N −1 )
+1
+0
+0
+...
+0
+0
+12.0
+0
+1
+0
+...
+0
+0
+11.0
+0
+0
+1
+...
+0
+0
+1.0
+..
+..
+..
+..
+..
+..
+.
+.
+.
+.
+.
+.
+0
+0
+
+0
+0
+
+0
+0
+
+...
+...
+
+1
+0
+
+0
+1
+
+0.8495
+0.3628
+
+It is important to note that the scoring need not be so highly weighted towards the chosen
+projects compared to the rest, and it was merely a design choice. The effect of this gap
+is investigated in the hybrid system simulations in section 5.5
+
+24
+
+Chapter 4
+Coding the Model
+Now that each of the systems has been adequately defined, the implementation into
+physical code can occur. Since there was a large amount of code developed for this project,
+only the most crucial aspects will be highlighted and discussed. The inter-workings of the
+developed code are illustrated using a UML code diagram as shown in appendix F.
+
+4.1
+
+Importing The Data
+
+Two main data structures need to be input into the system. One is the projects and
+their descriptors, the other is the students and their preferences. Due to this need, a
+lightweight CSV parser was developed specifically for the required files, snippets of the
+developed code can be found in appendix D.
+Abstractly the CSV file imports the two structures of data into the respective vectors.
+Based on the system concerned:
+1
+2
+3
+
+// Reading in student data for the appended project system
+vector < vector < unsigned > > & someStudentPref ,
+unsigned & nStudents
+
+4
+5
+6
+7
+8
+9
+10
+
+// Reading in project data for the status quo & hybrid system
+vector < vector < unsigned > > & studentLecturerPref ,
+vector < vector < unsigned > > & studentModulePref ,
+vector < vector < unsigned > > & studentKnowAreaPref ,
+vector < vector < unsigned > > & studentActivitiesPref ,
+unsigned & nStudents
+
+11
+12
+13
+14
+15
+16
+
+// Reading in lecturer data
+vector < vector < unsigned > > & lecturersAndProjects ,
+map < unsigned , vector < unsigned > > & lecturerPresentsTheseIDs ,
+unsigned & nLeaders ,
+unsigned & nProjects
+
+4.2
+
+Input Checks
+
+At this point, the data is within the grasp of the PGM implementation. However, to
+ensure its validity, various input checks are completed. Different checks are run depending
+on which system type is running, to ensure a valid solution exists within the students’
+selections.
+1
+2
+3
+4
+5
+
+bool oddsAndEnds :: i np u t Va l i di t y Ch e c ks (
+vector < vector < unsigned > > preferredProjects ,
+vector < unsigned > requiredToLead ,
+map < unsigned , vector < unsigned > > lecturersPresentsTheseIDs ,
+unsigned nLeaders ) ;
+
+This function checks the followings and alerts if a check fails.
+25
+
+• Each project is chosen by at least one student.
+• All lecturers’ projects are chosen by a diverse enough student group so each project
+can be theoretically allocated, this is not checked across different lecturers.
+
+4.3
+
+Output Validation Checks
+
+Skipping past the actual factor implementations, there needs to be specific checks done
+on the output, in order to validate that the results are correct.
+1
+2
+3
+4
+5
+6
+7
+
+bool oddsAndEnds :: o u t p u t V a l i d i t y C h e c k s (
+unsigned nProjects ,
+unsigned nStudents ,
+unsigned nLeaders ,
+Matrix < unsigned > allocations ,
+vector < unsigned > eachPropose ,
+vector < unsigned > requiredToLead ) ;
+
+The output checks validate the following:
+• Ensures every student is allocated one project.
+• Each project is allocated to one or zero students.
+• Every project leader is allocated the correct amount of projects.
+
+4.4
+
+Coding the Factors
+
+In chapter 3 the factors were described in a somewhat abstract manner, in the developed
+code they are embedded within a DiscreteTable, as shown below. Attempting to describe all the coded factors is too detailed for this project. Therefore the population of two
+of the factors, namely ’each student needs an allocated project’ and ’project leaders must
+present a specific number of projects’ are shown in appendix E. The remaining factors
+are not described in detail.
+An important note is that, as previously stated, the scored project preferences factors
+are structured just as the ones referenced in appendix E, except their potential value is a
+score or some weighting. And the scoring function works as described in algorithm 1.
+The developed code depends on the following EMDW and patrec files:
+1
+2
+3
+4
+5
+
+// patrec headers
+# include " zfstream . hpp "
+# include " logging . hpp " // initLogging
+# include " testing . hpp "
+# include " genmat . hpp "
+
+6
+7
+8
+9
+10
+11
+
+// emdw headers
+# include " emdw . hpp "
+# include " discretetable . hpp "
+# include " clustergraph . hpp "
+# include " lbu_cg . hpp "
+
+The developed code depends heavily on the EMDW package. Which implements the
+DiscreteTable instantiation, the automatic ClusterGraph generation. As well as the
+26
+
+message passing procedure loopyBU_CG, which once completed can be queried (queryLBU_CG)
+via the potentialAt function. It also supports a graph visualiser via the exportToGraphViz()
+function.
+Furthermore it allows one to choose MAP operations over the conventional queries.
+// MAP operators (utilised over standard operators):
+rcptr<Marginalizer> margPtr = uniqptr<Marginalizer>(
+new DiscreteTable_MaxMarginalize<unsigned> );
+rcptr<InplaceNormalizer> iNormPtr = uniqptr<InplaceNormalizer>(
+new DiscreteTable_InplaceMaxNormalize<unsigned> );
+rcptr<Normalizer> normPtr = uniqptr<Normalizer>(
+new DiscreteTable_MaxNormalize<unsigned> );
+All of the necessary factor operations are also implemented within the package. The only
+factor operation directly utilized by the project is the inplaceNormalize(). Which is
+utilized to normalize the preference potentials when the DiscreteTable’s are added into
+the ClusterGraph.
+
+4.5
+
+Various Other Functions
+
+A plethora of other functions were also required through the development of the model,
+and were coded in the oddsAndEnds.cc file. The crucial functions are:
+• findCombinationsOfOnes : Which returns all the different combinations of a given
+vector of 1’s and 0’s.
+• scoreProjectAndStudent : Which returns all score value of a given project-student
+pair.
+• scoreProjectAndStudentBinary : Analogous to above but input vectors are binary.
+• reorderToRank : Converts a score values into a ordered lists of projects.
+• reorderToRankVec : Analogous to above but for only one project.
+• pickOne : Returns a value from an array according to some probability of each item
+being chosen.
+
+27
+
+Chapter 5
+Solving the Model, Investigating and
+Validating Results
+With the theoretical model fully declared in code, simulations are now possible. Fundamentally the simulations should first validate whether or not the PGM can come to some
+correct solution given some input. From there each of the systems can be simulated and
+tweaked to observe the effects of their heuristic variables. The tweaking is aimed to inquire how to best optimise the system. Or whether the variables make any difference at all.
+Two measures are used in analysing model performance, one is a convergence measure,
+as discussed previously in section 2.2.3. Another is the cumulative sum - or running total
+- of projects given to students, based off their selection orders (i.e. cumulatively counting
+the number of students who receive their nth chosen project).
+
+5.1
+
+A Preliminary Simulation - Chaos and Uncertainty
+
+As discussed previously, without noise to unlock equal probabilities the PGM will not be
+able to come to any conclusion. Therefore the first simulation adds Gaussian noise to the
+’structural constraint’ factors. This allows one to get a better idea of the intricacies of
+the model before the real student data is considered. These simulations are run against
+the same random seed.
+The data is defined as:
+• Students: 80
+• Lecturers: 20
+• Projects: 100
+• Lecturer Pairs: < 4, 5 >
+The simulations are described as follows:
+• Uniform distributed project choices with 1e-3 Gaussian noise.
+• Uniform distributed project choices with 1-e1 Gaussian noise.
+• Top 20 Uniform distributed project choices with 1e-3 Gaussian noise.
+• Linear weighted project choices (weighted towards P0 ) with 1e-3 Gaussian noise.
+• Linear weighted project choices (weighted towards P0 ) with 1e-1 Gaussian noise.
+• Top 27 linear weighted project choices with 1e-3 Gaussian noise.
+28
+
+• The base system with 1e-3 Gaussian noise.
+• The base system with 1e-1 Gaussian noise.
+Firstly as seen in 5.2, the PGM converges to a valid solution. Therefore the methodical
+procedures taken in setting up a proper model have proved themselves useful. With the
+fundamental objective solved, different aspects of the model can now be investigated.
+Effect of noise on solutions
+From the bottom subplot in figure 5.1 it is clear that the run with less Gaussian noise
+converges quickly to a much lower value, then stops. While the higher Gaussian plot convergence slows dramatically at a higher threshold. The reason for this is conjectured to
+be that the larger noise values require the model to unlearn certain beliefs, and introduces
+more uncertainty. This is observed again when larger noise values are added to the linear
+weighted run and the uniform distribution run.
+Finally, the negative effect of adding larger noise is unequivocally stated in figure 5.2.
+Where it is clear that introducing larger noise pushes the students’ allocations to lower
+less optimal projects.
+Effect of project distributions
+Furthermore, it is clear that the more distributed the project selections, the more optimal
+the project allocations become. This is concluded by comparing the ’spread choices’ and
+’linear choices’ results in figure 5.2 and observing that the ’linear choices’ fall to the lower
+projects, where the ’spread choices’ describe all project allocations within all the students
+top 5 choices.
+Effect of the number of chosen projects
+The results in figure 5.2, show as expected the fewer number of supplied projects, the
+faster the convergence. This is to be expected because the PGM has less arguing to do
+with itself, (i.e. the discrete entries within the graph are more sparse). It is, however,
+important to note the number of projects pays a large role, The linear weighted projects
+did not contain an answer within the top quarter of project selections, that is why the
+simulation is done over the top third (27), as specified in figure 5.2.
+Furthermore removing the bottom projects from the list does not affect the ’optimization’
+of allocated projects, only the convergence rates. This is shown in figure 5.2, where the
+plots for ’spread choices’ and ’spread choices top 20’ are the same. Similarly with ’linear
+choices’ and ’linear choices top 27’.
+
+5.2
+
+Cross Implementation Testing
+
+There are also various other available methods to solve this problem. Google provides a
+package, OR-Tools, which allows one to solve CSP’s through a variety of languages and
+implementations 1 . Their Mixed Integer Programming (MIP) implementation in python
+was chosen due to its simplicity to set up. Three different instances of project selections
+were simulated, the first was uniformly distributed over the projects. The second and
+1
+
+Available at https://github.com/google/or-tools
+
+29
+
+Figure 5.1: Simulation observing the effect of different input noise, project choice distributions, and number of projects supplied on convergence behaviour
+
+Figure 5.2: Simulation observing the effect of different input noise, project choice distributions, and number of projects supplied on optimal project allocations
+
+30
+
+third were linearly weighted towards the lower projects.
+The data fields that were input into both systems are defined the same as in section
+5.1. i.e. 80 students, 20 lecturers, 100 projects, and lecturer pair as < 4, 5 >.
+The MIP method seeks to find some optimal solution via defining a cost matrix, creating an objective function from that, and then finally minimizing the objective function.
+The method used to solve the MIP problem is Coin CBC (Coin- or branch and cut) [18].
+The students project choices can easily be converted into a cost matrix, by utilising cost
+as the opposite of preference, each student’s top choice is given a cost of 0 until his last
+choice which is given the largest cost.
+From the results shown in figure 5.3, it is clear that the two give almost exact results.
+An interesting observation is that for the distributed projects case the PGM was able to
+allocate 1 more student their top choice than MIP. Another advantage of PGM implementation is seen in ’PGM Weighted 2’. It can allocate more students projects in the 6th
+to 8th project choice range. The convergence of solutions between the two was around 1
+second for MIP and 40 seconds for PGM.
+
+Figure 5.3: Cumulative project allocation graph showing three different instances of simulated project choices comparing the performances of the PGM implementation vs Google’s
+MIP OR-Tools implementation to allocate more preferenced topics
+
+5.3
+
+Status Quo System Simulations
+
+Given the scores for all the projects and the allocation projects, a graph is plotted to
+view how well the system can allocate projects that students prefer, based on their scores.
+It’s important to note that in the view of a scoring system, the students top 5 or 10
+projects may all be scored a full 3, this ambiguity is a method that forces the distribution
+of project preference over a larger number of projects.
+Of course, it cannot be the case that every student gets their first choice. But an optimal
+31
+
+graph would have most of the selections towards the upper half of the scores. In addition
+to this, the question begs whether the system performs better or worse if the scores are
+kept in the factors, or if an ordered list of projects works better. This essentially is the
+difference if a project receives a score Pi ∈ [0.3, 3] or a weight value Pi ∈ [1, M − 1] (not
+that the weight values are unique to each project but scores can occur multiple times).
+Thus, the first simulations are based on this notion, first identifying if projects are allocated to students who prefer them and then if the system performs better off an ordered
+list or the scores themselves.
+From the simulation results, as shown in figure 5.5 it is clear there is a strong correlation between project allocations across both the different seeds and ordered list vs scored
+projects. Thus it can be inferred that the random seeds do not negatively affect results.
+Furthermore, there is no large consistent gap between results of the scored vs the ordered
+list, therefore that influence is also denoted as negligible. If one wanted to highly scrutinize the graph it could be said, on average, by a tiny margin that the scoring function
+works better than the ordered list, but this is not true overall.
+This unexpected phenomenon hints towards the true optimization capabilities of PGM’s.
+One might expect the result that students might on average get a higher scoring product,
+due to the ambiguity in the scoring function. However, the system seems to overlook
+those sort of heuristics and be able to reach truly optimal solutions.
+Finally, there is not significant observable effect between the two tests on convergence
+behaviours as seen in figure 5.4, and all the convergences have quite chaotic patterns. It
+is however quite interesting to note that there are sudden jumps in convergence values,
+across all simulations. This is assumed to be when the PGM suddenly realizes a solution,
+thereby causing multiple factors, which previously had the largest disagreement at the
+time to agree suddenly.
+
+Figure 5.4: Status quo simulation observing the effect of a scored list of projects vs an
+ordered list of projects on the convergence behaviour
+
+32
+
+Figure 5.5: Status quo simulation observing the effect of a scored list of projects vs an
+ordered list of projects on optimal project allocations
+
+5.4
+
+Appended Project System Simulations
+
+Since no real project selection data exists, the data needs to be simulated. However, to
+ensure that the selections remain semi-realistic a function was developed that simulated
+project choices from students lecturer selections - as supplied in the status quo system.
+Essentially the function considers the students top 8 lectures, picks one of those lecturers according to students preference towards them (i.e the 1st lecturer has the most
+likely chance of being chosen and the 8th the least). The function pickOne is shown in
+appendix E. Then randomly selects one of those projects from that lecturer, until the
+top 12 projects are simulated for each student. Furthermore, the simulation ensures that
+the projects were from at least 5 of the 8 different lecturers. Finally, the system appends
+projects to the bottom of the choices list, as defined previously in table 3.9.
+Firstly the simulations were run to observe the capability of the system. Then various variables were tweaked to show their impacts on results.
+Some of the interesting observations from the simulations lie in how the system compensates higher vs lower selections. It is clear from figure 5.6 that in the case where
+a wider variety of projects are available, the system allows a student to be allocated a
+slightly lower project to allocate another student a much higher project. Whereas in the
+case where there are fewer projects, both are allocated more averagely preferred projects.
+This observation, however, borders on nitpicking as it only affects 1 or 2 students. The
+more important deduction is that all the simulations result in comparable preference
+graphs, as shown in 5.8. Most of the simulations result in 90% of students being allocated
+projects within their top 6 selections.
+Furthermore, the seeds themselves do not massively affect the resulting preference graphs,
+as the cumulative graph results are essentially the same over each of the three different
+seed values. Therefore it can be concluded that seeds do not lead to significantly poorer
+33
+
+Figure 5.6: Appended project system simulation comparing two different lengths of preferred projects lists and their effect on optimal project allocation
+
+results and students are not disadvantaged. There is however the edge case of a student
+getting their 19th choice. This is regarded as an unfavourable result. Nevertheless, one
+could easily rerun the system utilising a different random seed for a better result.
+The seeds do affect convergence plots. However, there are so many different factors at
+play it is difficult to isolate single causal reasons behind results, and no significant patterns are visible. This does not, however, put the effectiveness of the system into question
+as it is clear from figure 5.8 that students are receiving projects that they prefer. This
+is the ultimate result the project initially aimed at. Thus convergence occurs for each
+simulation and the gradient of the plot is the only significant variable.
+It’s also important to note that appending the projects or at least have a large enough
+selection space with enough diversity amongst lecturers is paramount for a valid solution.
+Multiple seeds fail when trying to find solutions over only 10 projects. This is due to
+the lack of diversity amongst student selections, leading to projects not being selected,
+fracturing the PGM. A note on this is that if a solution does not exist within the selections
+the PGM fractures almost immediately, so no approximate answer can be achieved, this
+could be viewed in both a positive and negative light.
+The simulations additionally served to observe the robustness of the system. Although
+this system is technically the most susceptible to non-viable solution spaces. The simulations are clear that given that enough diversity is forced into the selections, it is most
+often not the case.
+Finally, considering the cumulative project choice graph figure 5.8, a baseline of good
+performance is having all students get a project that they select, i.e. not one of the appended projects. Further, it would be optimal if most students received a project that
+is at least weighted towards the upper half. From the graphs, it is clear that this is the
+case, this concretely solidifies the effectiveness of the PGM structure to optimise resource
+allocation in constrained satisfaction problems.
+
+34
+
+Figure 5.7: Convergence plot for appended project system observing the effect of different
+lengths of weighted projects lists on the convergence behaviour
+
+Figure 5.8: Cumululative project preference allocation plot for appended project system observing the effect of different lengths of weighted projects lists on optimal project
+allocations
+
+35
+
+As a final remark is it interesting to observe that it is most often the case that the lower
+the starting change in sepset belief the slower the rest of the convergence, similar results occur in the preliminary simulations in 5.1, it seems that this system converges very
+quickly to some solution and then are halted from further convergence at that point, but
+this observation is purely speculative.
+
+5.5
+
+Hybrid System Simulations
+
+This system offers the most freedom for both the students and the system. Students
+are given the freedom to explicitly choose their top projects, and the system is always
+supplied with data that contains a valid allocation.
+Having both of the previous systems effectiveness tested thoroughly, the following simulations aim to optimise how they can best be fit together. Thus the effect of manipulating
+the gap between physical project selections (Appended Project System) and appended
+(Status Quo System) is investigated. Because the system is a hybrid between the other
+two the output plot was chosen to be over-allocated projects rather than scores.
+Firstly, it should be concluded that yet again the PGM converges to a valid solution,
+within a reasonable amount of time, so the basic objective has been satisfied.
+Shifting focus to more of an optimisation perspective, the simulation tested three different separation values and an illustration of the project weights is shown in figure 5.9.
+It is strikingly clear that the gap has little to no effect on the project allocations. This
+
+Figure 5.9: Normalized project preference scatter showing the effect of different gaps
+between chosen projects and appended on project probabilities
+means that the PGM doesn’t consider gaps in distributions an issue and is another manner in which mere trivial heuristics are overlooked which might to the user appear as
+something that could affect project allocations. It is interesting to note however that
+there are differences in convergence plots as seen in 5.11. It is conjectured that for the
+runs with the smallest and largest gap introduced some form of ambiguity which was not
+present in the medium gap run.
+36
+
+Figure 5.10: Cumulative preference plot for hybrid project system observing the effect
+of different probability gaps between chosen projects and appended projects on optimal
+project allocations
+
+Figure 5.11: Convergence plot for hybrid project system observing the effect of different
+probability gaps between chosen projects and appended projects on convergence behaviour
+
+37
+
+Chapter 6
+Conclusions and Possible Improvements
+Throughout the project, multiple useful observations were presented, not only concerning
+the effectiveness of the developed student-project problem but also in terms of developing
+PGM’s to solve CSP’s in a more general sense. Nuances into model development, RV
+definitions, constraint translation are all crucial steps without which the model would be
+essentially useless. This final chapter sets out to concisely describe and conclude what
+has been discovered throughout the project.
+All of the three systems tested contained multiple different variables, of which many
+were tweaked to observe their effects. Many of these variables were shown to have insignificant impacts on the allocation of projects for each of the systems. This attests to
+the effectiveness of the PGM’s application. Convincingly substantiating it could optimise
+the resource allocation problem.
+
+6.1
+
+The Nuances of PGM’s
+
+This section highlights the nuances of PGM’s and intricately lays out the methodology
+that was applied in solving the student-project problem. The nuances are described in
+a generalized sense such that they could be applied to other CSP’s. The methodology
+follows as:
+• Identify what exactly the problem that needs addressing is, and explain it logically;
+• From that problem identify constraints, and explain them thoroughly;
+• Identify what the solution to the problem may be and the different states;
+• Describe anything that may seem to be a variable that influences the answer;
+• Carefully define various RV’s which can describe the various solution states, or states
+of influencers - taking into consideration the different configurations and constraints,
+and ensuring these RV’s don’t require the full joint distribution to adequately describe the model;
+• Identifying the dependencies between the different RVs in the model;
+• Grouping the dependent RV’s reasonably ensuring sparsity in configurations. This
+will depend severely on whether certain groups of RV’s are completely dependent
+on one another or not.
+• Utilise declarative representations (factor tables) and the configurations of grouped
+RV’s to translate constraints into factor potentials;
+• Ensure that the defined configurations and dependencies are sparse enough for a
+possible computable solution. Otherwise, the RV’s or the factor tables need to be
+redefined. Or more independence assumptions should be made.
+38
+
+This methodology outlines the procedures taken within this project. The procedure will
+most likely occur iteratively. Especially regarding RV definitions, which often require
+some reworking and careful thought before they can describe more local distributions.
+Further realizing that even factors that may potentially define intractable many discrete
+possibilities, that careful analysis or constraint choice may prove this to not be true.
+
+6.2
+
+The Importance of Diversity
+
+The simulations from the Appended Project System highlighted how essential project
+diversity was. Students choices were simulated to include projects from a set number of
+lecturers. Diversifying project choices overall, and partially ensuring that valid solution
+could exist. Moreover, as long as the system receives a valid data-set, it was confirmed
+that the PGM will converge to a valid solution.
+From the preliminary simulation results shown in section 5.1, it was additionally observed
+that forcing lecturer diversity also aided in students being allocated higher preferred topics.
+
+6.3
+
+Final Comments and Recommendations
+
+In conclusion, the fundamental problems of translating a preference-based CSP into a
+PGM was successfully achieved. Thereby optimising the resource allocation problem.
+Initially concluding that preferences could be denoted through probabilistic potentials was
+paramount, then imposing these potentials over some developed ’structural constraints’.
+Finally, message passing procedures were computed, which yielded valid solutions. Additionally, it was necessary to develop various systems. Due to the abstraction between the
+theoretical model and the physical system.
+The EMDW PGM implementation was then shown to not only match the performance
+of other highly complex implementations. Such as those by Google’s OR-Tools [18]. The
+PGM implementation was even able to marginally outperform them.
+Regarding further studies. Due to time constraints, not every aspect of each of the
+systems could be fully analysed and critiqued. Observing the effects of weighting specific
+descriptors more strongly than others and observing the effects on project allocations
+could be one focus of further research into this topic. This could also be extrapolated to
+the weighting of lecturers. Further investigation could include the effects of implementing
+the descriptors within unique factor tables. Finally, the system could be compared to a
+wider variety of other implementations to compare performance.
+
+39
+
+Bibliography
+[1] R. Dechter, “chapter 1 - introduction,” in Constraint Processing (R. Dechter, ed.),
+The Morgan Kaufmann Series in Artificial Intelligence, pp. 1 – 22, San Francisco:
+Morgan Kaufmann, 2003.
+[2] S. L. Lauritzen and P. P. Shenoy, “Computing marginals using local computation,”
+preprint, 1995.
+[3] U. Today, “How many atoms are there in the universe?,” 2009.
+[4] D. Barber, Bayesian reasoning and machine learning. Cambridge University Press,
+2012.
+[5] S. L. Lauritzen and D. J. Spiegelhalter, “Local computations with probabilities on
+graphical structures and their application to expert systems,” Journal of the Royal
+Statistical Society: Series B (Methodological), vol. 50, no. 2, pp. 157–194, 1988.
+[6] S. Streicher and J. du Preez, “Graph coloring: comparing cluster graphs to factor
+graphs,” in Proceedings of the ACM Multimedia 2017 Workshop on South African
+Academic Participation, pp. 35–42, ACM, 2017.
+[7] E. B. Wilson and J. W. Gibbs, Vector analysis: a text-book for the use of students of
+mathematics and physics; founded upon the lectures of J. Willard Gibbs. Scribner’s
+Sons, 1902.
+[8] S. Wright, “The method of path coefficients,” The Annals of Mathematical Statistics,
+vol. 5, no. 3, pp. 161–215, 1934.
+[9] D. E. Heckerman, E. J. Horvitz, and B. N. Nathwani, “Toward normative expert
+systems: Part i the pathfinder project,” Methods of information in medicine, vol. 31,
+no. 02, pp. 90–105, 1992.
+[10] D. Koller and N. Friedman, Probabilistic graphical models: principles and techniques.
+MIT press, 2009.
+[11] J. Pearl, “Fusion, propagation, and structuring in belief networks,” Artificial intelligence, vol. 29, no. 3, pp. 241–288, 1986.
+[12] C. Berrou, A. Glavieux, and P. Thitimajshima, “Near shannon limit error-correcting
+coding and decoding: Turbo-codes. 1,” in Proceedings of ICC’93-IEEE International
+Conference on Communications, vol. 2, pp. 1064–1070, IEEE, 1993.
+[13] F. R. Kschischang, B. J. Frey, H.-A. Loeliger, et al., “Factor graphs and the
+sum-product algorithm,” IEEE Transactions on information theory, vol. 47, no. 2,
+pp. 498–519, 2001.
+[14] A. W. Eckford, “The factor graph em algorithm: applications for ldpc codes,” in
+IEEE 6th Workshop on Signal Processing Advances in Wireless Communications,
+2005., pp. 910–914, IEEE, 2005.
+40
+
+[15] G. Elidan, I. McGraw, and D. Koller, “Residual belief propagation: Informed scheduling for asynchronous message passing,” arXiv preprint arXiv:1206.6837, 2012.
+[16] V. Lepar and P. P. Shenoy, “A comparison of lauritzen-spiegelhalter, hugin, and
+shenoy-shafer architectures for computing marginals of probability distributions,”
+arXiv preprint arXiv:1301.7394, 2013.
+[17] S. Kullback, Information theory and statistics. Courier Corporation, 1997.
+[18] Google, “Python reference: Linear solver,” 2019.
+
+41
+
+Appendix A
+Project Planning Schedule
+Timeline (Weeks)
+
+Task
+
+June-July Holidays
+
+PGM theory begin
+
+1,2,3
+
+PGM theory continue
+
+4,5
+
+Model Development &
+Code
+
+6,7,8,9
+
+Code
+
+10,11
+
+Report Begin, Code
+
+12
+
+Code, Report
+
+13,14
+
+System Simulations,
+Report
+
+15
+
+System Comparison,
+Report
+
+16
+
+Report hand in
+
+42
+
+Task Description
+Week 1-2 PGM theory course,
+Coursera PGM course begin
+Week 2-5 PGM Theory,
+Continue Coursera course
+Basic student-project model developed
+Develop CSV Importer, Hybrid System,
+Status-Quo System,
+Appended Project System
+Various literature reviews,
+neaten the developed code
+Further model coding,
+documenting model development
+All different systems were simulated,
+documenting coded systems, and
+simulation results
+PGM Implementation Compared to
+Google OR-Tools MIP
+Implementation, and reporting on the
+results
+
+Appendix B
+
+ECSA Outcomes Compliance
+
+ELO Description
+
+Motivation
+
+ELO 1: Problem Solving:
+Identify, formulate, analyse
+and solve complex engineering
+problems creatively and
+innovatively
+ELO 2: Application of scientific
+and engineering knowledge:
+Apply knowledge of
+mathematics, natural sciences,
+engineering fundamentals and
+an engineering speciality to
+solve complex engineering
+problems.
+
+Constrained Satisfaction Problems
+are an example of an identified
+engineering problem, this an various
+other problems were solved throughout
+the project.
+Various aspects of probabilistic
+graphical model theory were applied
+in this project. As well as numerous
+other mathematical, statistical and
+engineering concepts.
+Specifically applied in model
+development, analysis of complexity
+and finally in model analysis.
+Multiple different implementations of
+graphical models were designed
+and implemented. This required meticulous
+attention to detail, creative thought
+patterns and nuanced reasoning.
+The graphical models then had to be
+reimplemented to within a coding framework,
+requiring certain redesigning.
+Numerous simulations were performed on the
+various designed models. The simulations were
+designed to test various aspects of the model,
+including robustness, efficiency, and validity.
+The graphical model implementation was then
+also compared to another methodology utilized
+to solve the relevant problem.
+
+ELO 3: Engineering Design:
+Perform creative, procedural
+and non-procedural design
+and synthesis of components,
+systems, engineering works,
+products or processes.
+ELO 4: Investigations,
+experiments and data analysis:
+Demonstrate competence to
+design and conduct
+investigations and
+experiments.
+
+43
+
+Relevant
+Pages
+1-3;
+15;19
+
+2-3;
+12;
+25-27;
+
+13-24;
+25-27
+
+28-37;
+38-40
+
+ELO Description
+
+Motivation
+
+Intractable computational solution spaces are a
+complication posed by constrained satisfaction
+problems. Utilising probabilistic graphical
+methods these solutions spaced can be avoided.
+This is but one example of how engineering
+methods were used to solve problems in this
+project.Furthermore, the methodology itself
+required the use of intelligent code structures
+and computer-based processing power to solve.
+Competencies of professional and technical
+ELO 6: Professional and
+communication skills are more than adequately
+technical communication:
+substantiated throughout the project.
+Demonstrate competence to
+Shown through the structure, presentation
+communicate effectively, both and professional communication methods
+orally and in writing, with
+utilized throughout the report. These include
+engineering audiences and the utilising well-structured paragraphs,
+community at large.
+graphical representations and professional
+writing styles.
+ELO 8: Individual work:
+Various aspects of model development,
+Demonstrate competence to
+design of simulation and tests, and model
+work effectively as an
+description within code were completed
+individual.
+individually.
+After the fundamental probabilistic graphical
+model theory was learnt, as guided. Various
+ELO 9: Independent Learning
+independent investigations were conducted
+Ability: Demonstrate
+to establish a deeper understanding of the
+competence to engage in
+project. This includes, but is not limited to,
+independent learning through
+literature reviews into message passing
+well-developed
+techniques, the fundamental establishment
+learning skills.
+of theory via the founders’ work, and solutions
+to similar problems as recorded in the literature.
+ELO 5: Engineering methods,
+skills and tools, including
+Information Technology:
+Demonstrate competence to
+use appropriate engineering
+methods, skills and tools,
+including those based on
+information technology.
+
+44
+
+Relevant
+Pages
+
+13-24;
+25-28
+
+Entire
+project
+
+4-12;
+13-23;
+25-28;
+
+9-12;
+13-23;
+25-27
+
+Appendix C
+PGM Graph Snippet
+
+45
+
+Appendix D
+CSV Code
+1
+2
+3
+4
+5
+6
+
+// Opens files given name , delimeter , comment , if to ignore empty cols
+void csv2 :: openFile ( string fn , char dl , char cm , bool ig ) {
+fileName = fn ;
+del = dl ;
+commnt = cm ;
+ignoreEmpty = ig ;
+
+7
+
+file . open ( fileName , ifstream :: in ) ;
+cout << " + - - - - - - - - - - - - - - - - - - - - -\ n " ;
+cout << " | file : " << fileName << ’\ n ’;
+cout << " | delimiter value : " << del << ’\ n ’;
+cout << " | commented line delimiter : " << commnt << ’\ n ’;
+if ( ignoreEmpty ) { cout << " | ignoring empty columns \ n " ;} // if
+else { cout << " | do not ignore empty columns \ n " ;} // else
+cout << " + - - - - - - - - - - - - - - - - - - - - -\ n " ;
+
+8
+9
+10
+11
+12
+13
+14
+15
+16
+
+}
+
+17
+18
+19
+20
+21
+22
+23
+
+// Reads the next single line from file
+string csv2 :: readLine () {
+string line ;
+if ( file . is_open () ) {
+if (! getline ( file , line ) ) { eof = true ;}
+} // if
+
+24
+
+return line ;
+
+25
+26
+
+}
+
+27
+28
+29
+30
+31
+32
+
+// Reads and delimits next line from file
+vector < unsigned > csv2 :: readAndDel () {
+return delimit ( readLine () ) ;
+}
+
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+
+// This function converts a string into a vector of unsigned vals
+std :: vector < unsigned > csv2 :: delimit ( string str ) {
+char prev = del ;
+std :: vector < unsigned > temp ;
+string temp2 = " " ;
+unsigned count = 0;
+for ( char & c : str ) {
+bool emptyCol = (( prev == c ) && ( prev == del ) ) && ignoreEmpty ;
+if ( c != del ) temp2 += c ; // if
+if (( c == del || count == ( str . size () -1) ) && ! emptyCol ) {
+if ( temp2 != " " ) { temp . push_back ( stoul ( temp2 ) ) ;} // if
+else { temp . push_back (0) ;} // else
+temp2 = " " ;
+} // if
+count ++;
+prev = c ;
+} // for
+
+46
+
+51
+
+return temp ;
+
+52
+53
+
+}
+
+Essentially the code reads in a CSV file, given a specific delimiter character, and a commented line character, as well as a boolean value on whether to ignore empty columns.
+The CSV file is then read per line if the line is commented out, it is skipped, otherwise,
+it is delimited according to the character. If the ignore empty field is true then all empty
+fields (ie. two delimiters consecutively) are not added into the vector. A vector with the
+filled unsigned values is then passed back to the user.
+
+47
+
+Appendix E
+PGM Code Snippets
+1
+2
+
+map < vector < unsigned > , RVIdType > allocIds ;
+map < vector < unsigned > , RVIdType > leaderAllocIds ;
+
+3
+4
+
+RVIdType idCnt = 0;
+
+5
+6
+7
+8
+9
+10
+
+for ( unsigned s = 0; s < nStudents ; s ++) {
+for ( unsigned p = 0; p < nProjects ; p ++) {
+allocIds [{ s , p }] = idCnt ++;
+} // for
+} // for
+
+11
+12
+13
+14
+
+for ( unsigned p = 0; p < nProjects ; p ++) {
+leaderAllocIds [{ p }] = idCnt ++;
+} // for
+
+15
+16
+17
+18
+
+// binary domain for RV ’s
+rcptr < vector < unsigned > > binaryDom (
+new vector < unsigned > {0 ,1}) ;
+
+The above snippet illustrates that the different RV’s are tracked via a mapping to an ID
+of RVIdType. Note that the first, allocIds, represents the different student-project pair
+RV’s. And the second, leaderAllocIds, presents the project usage RV’s, which are used
+to determine the number of projects led by each leader.
+
+1
+2
+3
+4
+
+// Factors indicating that each student can only do one project
+for ( unsigned s = 0; s < nStudents ; s ++) {
+theDomains . clear () ; theIds . clear () ;
+probsTable . clear () ;
+
+5
+6
+7
+8
+9
+10
+11
+12
+13
+
+vector < unsigned > projAllocs ( nProjects ) ;
+for ( unsigned p = 0; p < nProjects ; p ++) {
+theDomains . push_back ( binaryDom ) ;
+theIds . push_back ( allocIds [{ s , p }]) ;
+for ( auto & el : projAllocs ) { el = 0;} // for
+projAllocs [ p ] = 1;
+probsTable [ projAllocs ] = 1.0 + perturb ( emdw :: randomEngine () ) ;
+} // for p
+
+14
+15
+16
+
+17
+18
+19
+
+rcptr < Factor > fPtr = uniqptr < Factor > (
+new DiscreteTable < unsigned >( theIds , theDomains , 0.0 , probsTable ,
+0.0 , 0.0 , false , margPtr , iNormPtr , normPtr ) ) ;
+fPtr - > inplaceNormalize () ;
+factors . push_back ( fPtr ) ;
+} // for s
+
+It is clear from the code that a factor is generated for each student. And the factor
+declares values over every project. There are three important variables input into the
+48
+
+DiscreteTable. Namely theIds, theDomains, and probsTable.
+theIds : Defines the a vector of RVIds that contains all respective RV’s in the DiscreteTable,
+i.e. a vector of allocIds and or leaderAllocIds.
+theDomains : Defines the respective domains of all the RV’s in the DiscreteTable i.e. a
+vector of binaryDom.
+probsTable : Defines a mapping of the different discrete configurations of the RV’s to
+some probability potential i.e. vector projAllocs mapped to a potential of 1, as shown
+in line 12.
+Line 10 & 11 define the specific project configuration via the projAllocs vector.
+Finally, the three variables are input into the DiscreteTable, technically a unique pointer
+to that factor, which contains the table. The factor is then normalized in line 17 and finally
+added to a shared pointer containing all the factors in line 18.
+1
+
+2
+3
+4
+
+// Factors indicating that each project leader must lead a specific
+number of projects
+for ( unsigned l = 0; l < nLeaders ; l ++) {
+theDomains . clear () ; theIds . clear () ;
+probsTable . clear () ;
+
+5
+6
+7
+
+// find all the different possible project allocations vectors
+vector < vector < unsigned > > combinations = oddsAndEnds ::
+f i n d C o m b i n a t i o n s O f O n e s ( requiredToLead [ l ] , eachPropose [ l ] , eachPropose [ l
+]) ;
+
+8
+9
+10
+11
+12
+13
+
+// add the relevant domains and ids to the DT
+for ( auto & id : l e c t u r e r s P r e s e n t s T h e s e I D s [ l ]) {
+theDomains . push_back ( binaryDom ) ;
+theIds . push_back ( leaderAllocIds [{ id }]) ;
+}
+
+14
+15
+16
+
+// for each valid combination set that probability to 1
+for ( auto & comb : combinations ) { probsTable [ comb ] = 1.0;}
+
+17
+18
+19
+20
+
+21
+22
+23
+
+// create the leaders DT
+rcptr < Factor > fPtr = uniqptr < Factor > (
+new DiscreteTable < unsigned >( theIds , theDomains , 0.0 , probsTable , 0.0 ,
+0.0 , false , margPtr , iNormPtr , normPtr ) ) ;
+fPtr - > inplaceNormalize () ;
+factors . push_back ( fPtr ) ;
+} // for
+
+The factor generation is essentially the same as the previous example, except now with
+a few alterations. Namely, a factor is created for each lecturer, and each factor contains
+only the relevant RV IDs of the projects they, i.e. the relevant leaderAllocIds, as shown
+in line 12.
+Further, the probsTable map is now filled with the different combinations of possible
+project configurations as determined by the function findCombinationsOfOnes, as discussed in the theoretical model development in table 3.5.
+49
+
+For the simulation of project choices from students, the following function was developed to choose lecturers according to some probability value where vector<float> v is
+a vector of the lecturer probabilities, and val is a random number between [0, 1].
+1
+2
+
+3
+4
+5
+
+unsigned oddsAndEnds :: pickOne ( vector < float > v , float val ) {
+// if that number is smaller than the probability value then select
+that index
+unsigned index = 0;
+bool flag = false ;
+float sum = v [0];
+
+6
+
+while (! flag ) {
+if ( val < sum ) {
+flag = true ;
+} else {
+index ++;
+sum += v [ index ];
+} // if else
+} // while
+
+7
+8
+9
+10
+11
+12
+13
+14
+15
+
+return index ;
+
+16
+17
+
+}
+
+50
+
+Appendix F
+Code Structure
+
+51
+
+

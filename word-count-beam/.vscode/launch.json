@@ -1,0 +1,91 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug (Launch) - Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-DebuggingWordCount<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.DebuggingWordCount",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-MinimalWordCount<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.MinimalWordCount",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-WindowedWordCount<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.WindowedWordCount",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-WordCount<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.WordCount",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-GameStats<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.GameStats",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-HourlyTeamScore<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.HourlyTeamScore",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-LeaderBoard<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.LeaderBoard",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-StatefulTeamScore<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.StatefulTeamScore",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-UserScore<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.UserScore",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-Injector<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.complete.game.injector.Injector",
+            "projectName": "word-count-beam"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-ExampleEchoPipeline<word-count-beam>",
+            "request": "launch",
+            "mainClass": "org.apache.beam.examples.subprocess.ExampleEchoPipeline",
+            "projectName": "word-count-beam"
+        }
+    ]
+}
