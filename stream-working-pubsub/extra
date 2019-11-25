@@ -1,0 +1,35 @@
+mvn -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.bioStatsPipe \
+      -Dexec.args="--project=ambrite \
+      --stagingLocation=gs://biostats-pipeline-data/staging/ \
+      --runner=DataflowRunner"
+
+mvn  -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.bioStatsPipe \
+      -Dexec.cleanupDaemonThreads=false \
+      -Dexec.args=" \
+            --project=ambrite \
+            --stagingLocation=gs://biostats-pipeline-data/staging \
+            --tempLocation=gs://biostats-pipeline-data/temp \
+            --runner=DataflowRunner \
+            --windowDuration=2m \
+            --numShards=1 \
+            --inputTopic=projects/ambrite/topics/bio-stats-topic \
+            --outputDirectory=gs://biostats-pipeline-data/output \
+            --outputFilenamePrefix=windowed-file \
+            --outputFilenameSuffix=.txt"
+
+
+
+
+
+
+mvn  -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.bioStatsPipe \
+      -Dexec.cleanupDaemonThreads=false \
+      -Dexec.args=" \
+            --project=ambrite \
+            --stagingLocation=gs://biostats-pipeline-data/staging \
+            --tempLocation=gs://biostats-pipeline-data/temp \
+            --runner=DataflowRunner \
+            --inputTopic=projects/ambrite/topics/bio-stats-topic \
