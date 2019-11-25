@@ -420,7 +420,7 @@ public class bioStatsPipe {
 		invalid.apply(
 			"Output Invalid Records",
 			ParDo.of(new toStringForOutput()))
-			.apply("Write PubSub Events", PubsubIO.writeMessages().to(options.getInvalidOutputTopic()));
+			.apply("Write PubSub Events", PubsubIO.writeStrings().to(options.getInvalidOutputTopic()));
 		
 					
 			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_invalid"));*/
@@ -428,7 +428,8 @@ public class bioStatsPipe {
 		// write out the valid records
 		valid.apply("Output Invalid Records",
 			ParDo.of(new toStringForOutput()))
-			.apply("Write PubSub Events", PubsubIO.writeMessages().to(options.getValidOutputTopic()));
+			.apply("Write to PubSub", PubsubIO.writeStrings().to(options.getValidOutputTopic()));
+
 			
 			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_valid"));*/
 
