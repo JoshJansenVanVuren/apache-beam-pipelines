@@ -1,2 +1,4 @@
-/home/josh/devel/ambrite/working/src/main/java/org/ambrite/josh/bioStatsPipe.java
-/home/josh/devel/ambrite/working/src/main/java/org/ambrite/josh/WordCountJosh.java
+/home/josh/devel/ambrite/stream-working/src/main/java/org/ambrite/josh/DurationUtils.java
+/home/josh/devel/ambrite/stream-working/src/main/java/org/ambrite/josh/WordCountJosh.java
+/home/josh/devel/ambrite/stream-working/src/main/java/org/ambrite/josh/WindowedFilenamePolicy.java
+/home/josh/devel/ambrite/stream-working/src/main/java/org/ambrite/josh/bioStatsPipe.java

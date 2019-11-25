@@ -1,24 +1,62 @@
 package org.ambrite.josh;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Serializable;
+import java.util.Collections;
+
+import com.google.api.services.bigquery.model.TableFieldSchema;
+import com.google.api.services.bigquery.model.TableRow;
+import com.google.api.services.bigquery.model.TableSchema;
 
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.extensions.gcp.options.GcpOptions;
+import org.apache.beam.sdk.io.FileBasedSink;
 import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
+import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.options.StreamingOptions;
+import org.apache.beam.sdk.options.ValueProvider;
+import org.apache.beam.sdk.options.Validation.Required;
+import org.apache.beam.sdk.options.ValueProvider.NestedValueProvider;
+import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.PTransform;
-import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.PCollectionList;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.transforms.Partition;
-import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.Partition.PartitionFn;
+import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.apache.beam.sdk.transforms.windowing.FixedWindows;
+import org.apache.beam.sdk.transforms.windowing.Window;
+import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.PCollectionList;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.beam.sdk.io.fs.ResourceId;
+
+
+
+/**
+ * An example usage:
+ * <pre>
+ * mvn compile exec:java \
+ -Dexec.mainClass=com.google.cloud.teleport.templates.${PIPELINE_NAME} \
+ -Dexec.cleanupDaemonThreads=false \
+ -Dexec.args=" \
+ --project=${PROJECT_ID} \
+ --stagingLocation=gs://${PROJECT_ID}/dataflow/pipelines/${PIPELINE_FOLDER}/staging \
+ --tempLocation=gs://${PROJECT_ID}/dataflow/pipelines/${PIPELINE_FOLDER}/temp \
+ --runner=DataflowRunner \
+ --windowDuration=2m \
+ --numShards=1 \
+ --inputTopic=projects/${PROJECT_ID}/topics/windowed-files \
+ --outputDirectory=gs://${PROJECT_ID}/temp/ \
+ --outputFilenamePrefix=windowed-file \
+ --outputFilenameSuffix=.txt"
+ * </pre>
+ */
 
 public class bioStatsPipe {
 	public enum ThreeState {
@@ -246,33 +284,76 @@ public class bioStatsPipe {
 		}
 	}
 
+	/** Converts strings into BigQuery rows. */
+	static class StringToRowConverter extends DoFn<String, TableRow> {
+		private static final long serialVersionUID = 1L;
+
+		/** In this example, put the whole string into single BigQuery field. */
+		@ProcessElement
+		public void processElement(ProcessContext c) {
+			c.output(new TableRow().set("string_field", c.element()));
+		}
+
+		static TableSchema getSchema() {
+			return new TableSchema()
+				.setFields(
+					Collections.singletonList(
+						new TableFieldSchema().setName("string_field").setType("STRING")));
+		}
+	}
+
 	// *************************
 	// ** gs pipeline options **
 	// *************************
-	public interface BioStatsOptions extends PipelineOptions {
-
-		/**
-		 * By default, this example reads from a public dataset containing the text of King Lear. Set
-		 * this option to choose a different input file or glob.
-		 */
-		@Description("Path of the file to read from")
-		@Default.String("gs://biostats-pipeline-data/biostats.csv")
-		String getInputFile();
-	
-		void setInputFile(String value);
-	
-		/** Set this required option to specify where to write the output. */
-		@Description("Path of the file to write to")
-		@Default.String("gs://biostats-pipeline-data/output")
-		String getOutput();
-	
-		void setOutput(String value);
-	}
+	public interface BioStatsOptions extends ExampleOptions, StreamingOptions, BigQueryTableOptions {
+		@Description("The Cloud Pub/Sub topic to read from.")
+		@Required
+		ValueProvider<String> getInputTopic();
+		void setInputTopic(ValueProvider<String> value);	
+	}	
 
 	static void runBioStats(BioStatsOptions options) {
 		// create pipleline
 		Pipeline p = Pipeline.create(options);
-		PCollection<String> lines = p.apply("ReadMyFile", TextIO.read().from(options.getInputFile()));
+
+		options.setStreaming(true);
+
+		String tableSpec =
+        new StringBuilder()
+            .append(options.getProject())
+            .append(":")
+            .append(options.getBigQueryDataset())
+            .append(".")
+            .append(options.getBigQueryTable())
+            .toString();
+		
+		
+    	PCollection<String> lines = p
+        .apply("Read PubSub Events", PubsubIO.readStrings().fromTopic(options.getInputTopic()));
+        /*.apply(
+            options.getWindowDuration() + " Window",
+            Window.into(FixedWindows.of(DurationUtils.parseDuration(options.getWindowDuration()))));
+		
+        // Apply windowed file writes. Use a NestedValueProvider because the filename
+        // policy requires a resourceId generated from the input value at runtime.
+        .apply(
+            "Write File(s)",
+            TextIO.write()
+                .withWindowedWrites()
+                .withNumShards(options.getNumShards())
+                .to(
+                    new WindowedFilenamePolicy(
+                        options.getOutputDirectory(),
+                        options.getOutputFilenamePrefix(),
+                        options.getOutputShardTemplate(),
+                        options.getOutputFilenameSuffix()))
+                .withTempDirectory(NestedValueProvider.of(
+                    options.getOutputDirectory(),
+                    (SerializableFunction<String, ResourceId>) input ->
+                        FileBasedSink.convertToFileResourceIfPossible(input))));*/
+
+		
+		// PCollection<String> lines = p.apply("ReadMyFile", TextIO.read().from(options.getInputFile()));
 
 		// log out the lines
 		//lines.apply("Log inputs",                     // the transform name
@@ -320,12 +401,20 @@ public class bioStatsPipe {
 		// write out the invalid records
 		invalid.apply(
 			"Output Invalid Records",
-			ParDo.of(new toStringForOutput())).apply(TextIO.write().to(options.getOutput() + "_invalid"));
+			ParDo.of(new toStringForOutput()))
+			.apply(ParDo.of(new StringToRowConverter())).apply(
+				BigQueryIO.writeTableRows().to(tableSpec).withSchema(StringToRowConverter.getSchema()));
+		
+					
+			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_invalid"));*/
 
 		// write out the valid records
-		valid.apply(
-			"Output Valid Fields",                    
-			ParDo.of(new toStringForOutput())).apply(TextIO.write().to(options.getOutput() + "_valid"));
+		valid.apply("Output Invalid Records",
+			ParDo.of(new toStringForOutput()))
+			.apply(ParDo.of(new StringToRowConverter())).apply(
+				BigQueryIO.writeTableRows().to(tableSpec).withSchema(StringToRowConverter.getSchema()));
+			
+			/*.apply(TextIO.write().to(options.getOutputDirectory() + "_valid"));*/
 
 		p.run().waitUntilFinish();
 	}
