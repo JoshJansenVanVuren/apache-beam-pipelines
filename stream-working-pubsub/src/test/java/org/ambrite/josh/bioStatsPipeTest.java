@@ -3,11 +3,11 @@ package org.ambrite.josh;
 import java.util.Arrays;
 import java.util.List;
 
-import org.ambrite.josh.bioStatsPipe.Person;
-import org.ambrite.josh.bioStatsPipe.ThreeState;
-import org.ambrite.josh.bioStatsPipe.StringsToPeople;
-import org.ambrite.josh.bioStatsPipe.PartitionValidRecords;
-import org.ambrite.josh.bioStatsPipe.toStringForOutput;
+import org.ambrite.josh.Person;
+import org.ambrite.josh.Constants.ThreeState;
+import org.ambrite.josh.BioStatsPipe.StringsToPeople;
+import org.ambrite.josh.BioStatsPipe.PartitionValidRecords;
+import org.ambrite.josh.BioStatsPipe.toStringForOutput;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Create;
