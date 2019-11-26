@@ -14,6 +14,10 @@ Various batch and streaming apache beam pipeline implementations and examples. T
     * DataFlow - A runner for the pipeline
     * Bucket - A cloud storage mechanism
     * BigQuery - Basically a cloud database.
+3. Some useful articles
+    * [Streaming with Pub/Sub](https://cloud.google.com/dataflow/docs/concepts/streaming-with-cloud-pubsub)
+    * [Apache Concepts / Programming Model](https://cloud.google.com/dataflow/docs/concepts/beam-programming-model)
+    * [A long article on different streaming methods](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
 
 ## batch-working
 Example of a batch pipeline, runs on the local runner so no cloud functionalities.
