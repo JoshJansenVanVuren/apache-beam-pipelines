@@ -65,7 +65,7 @@ mvn  -Pdataflow-runner compile exec:java \
             --invalidOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-INVALID-RECORDS} \
             --validOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-VALID-RECORDS}"
 ```
-7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes an article to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
+7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes a message to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
 
 ## word-count-beam
 Apache tutorial of a word count example for batch streaming. Find the 
