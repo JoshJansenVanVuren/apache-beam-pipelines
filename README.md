@@ -10,10 +10,10 @@ Various batch and streaming apache beam pipeline implementations and examples. T
 ## Google Cloud Preliminaries
 1. You need a google cloud account.
 2. Know how to use/create these:
-  * Pub/Sub - Basically a cloud message queue implementation
-  * DataFlow - A runner for the pipeline
-  * Bucket - A cloud storage mechanism
-  * BigQuery - Basically a cloud database.
+    * [Pub/Sub](https://cloud.google.com/pubsub/docs/overview) - Basically a cloud message queue implementation
+    * DataFlow - A runner for the pipeline
+    * Bucket - A cloud storage mechanism
+    * BigQuery - Basically a cloud database.
 
 ## batch-working
 Example of a batch pipeline
@@ -31,11 +31,14 @@ This folder is an implementation of a streaming pipeline that is subscribed to a
 
 `biostats.csv` is the input file
 
+The functionality of this project will run similarly to that of the tutorial provided by [Google Cloud](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-java-maven).
 	
 1. Clone the code to your local machine.
-2. Setup a Pub/Sub to listen to
-3. Setup a Pub/Sub to output to
-4. Use the following Maven command
+2. Setup a Google Cloud Project `{PROJECT-ID}`. There are a few authentication processes that need to happen to, 
+3. Setup a Bucket to store output data `{BUCKET-ID}`
+4. Setup a Pub/Sub Topic to listen to `{INPUT-TOPIC}`
+5. Setup a Pub/Sub Topic to output to `{OUTPUT-TOPIC-FOR-INVALID-RECORDS}` and `{OUTPUT-TOPIC-FOR-VALID-RECORDS}`
+6. Use the following Maven command through the command line (this starts the DataFlow stream)
 ```
 mvn  -Pdataflow-runner compile exec:java \
       -Dexec.mainClass=org.ambrite.josh.bioStatsPipe \
@@ -49,6 +52,7 @@ mvn  -Pdataflow-runner compile exec:java \
             --invalidOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-INVALID-RECORDS} \
             --validOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-VALID-RECORDS}"
 ```
+7. 
 
 ## word-count-beam
 Apache tutorial of a word count example for batch streaming
