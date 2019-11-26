@@ -33,8 +33,22 @@ This folder is an implementation of a streaming pipeline that is subscribed to a
 
 	
 1. Clone the code to your local machine.
-2. 
-
+2. Setup a Pub/Sub to listen to
+3. Setup a Pub/Sub to output to
+4. Use the following Maven command
+```
+mvn  -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.bioStatsPipe \
+      -Dexec.cleanupDaemonThreads=false \
+      -Dexec.args=" \
+            --project={PROJECT-ID} \
+            --stagingLocation=gs://{BUCKET-ID}/staging \
+            --tempLocation=gs://{BUCKET-ID}/temp \
+            --runner=DataflowRunner \
+            --inputTopic=projects/{PROJECT-ID}/topics/{INPUT-TOPIC} \
+            --invalidOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-INVALID-RECORDS} \
+            --validOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-VALID-RECORDS}"
+```
 
 ## word-count-beam
 Apache tutorial of a word count example for batch streaming
