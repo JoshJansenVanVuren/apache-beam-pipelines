@@ -16,8 +16,21 @@ Various batch and streaming apache beam pipeline implementations and examples. T
     * BigQuery - Basically a cloud database.
 
 ## batch-working
-Example of a batch pipeline
-TODO...
+Example of a batch pipeline, runs on the local runner so no cloud functionalities.
+
+`BioStatsPipe.java` is the main class.
+
+`Constants.java` encompasses all the constants for the classes.
+
+`Person.java` defines a record for the data to be passed through the pipeline
+
+`biostats.csv` is the input file
+
+1. Clone the code to your local machine.
+2. Run the following Maven command through the command line (no runner is specified, so it reverts to the local runner)
+```
+mvn compile exec:java -Dexec.mainClass=org.ambrite.josh.BioStatsPipe
+```
 
 ## stream-working-pub-sub
 This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages get passed through the pipeline and is then output to another Pub/Sub.
@@ -34,7 +47,7 @@ This folder is an implementation of a streaming pipeline that is subscribed to a
 The functionality of this project will run similarly to that of the tutorial provided by [Google Cloud](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-java-maven).
 	
 1. Clone the code to your local machine.
-2. Setup a Google Cloud Project `{PROJECT-ID}`. There are a few authentication processes that need to happen to, 
+2. Setup a Google Cloud Project `{PROJECT-ID}`. There are a few authentication processes that need to happen to see google cloud example and `GOOGLE_APPLICATION_CREDENTIALS`. 
 3. Setup a Bucket to store output data `{BUCKET-ID}`
 4. Setup a Pub/Sub Topic to listen to `{INPUT-TOPIC}`
 5. Setup a Pub/Sub Topic to output to `{OUTPUT-TOPIC-FOR-INVALID-RECORDS}` and `{OUTPUT-TOPIC-FOR-VALID-RECORDS}`
@@ -52,7 +65,7 @@ mvn  -Pdataflow-runner compile exec:java \
             --invalidOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-INVALID-RECORDS} \
             --validOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-VALID-RECORDS}"
 ```
-7. 
+7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes an article to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
 
 ## word-count-beam
-Apache tutorial of a word count example for batch streaming
+Apache tutorial of a word count example for batch streaming. Find the 

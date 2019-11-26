@@ -4,3 +4,6 @@ mvn -Pdataflow-runner compile exec:java \
       --stagingLocation=gs://biostats-pipeline-data/staging/ \
       --output=gs://biostats-pipeline-data/output \
       --runner=DataflowRunner"
+
+mvn -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.BioStatsPipe \

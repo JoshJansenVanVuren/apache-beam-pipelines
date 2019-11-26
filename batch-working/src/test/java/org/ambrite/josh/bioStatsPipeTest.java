@@ -3,11 +3,11 @@ package org.ambrite.josh;
 import java.util.Arrays;
 import java.util.List;
 
-import org.ambrite.josh.bioStatsPipe.Person;
-import org.ambrite.josh.bioStatsPipe.ThreeState;
-import org.ambrite.josh.bioStatsPipe.StringsToPeople;
-import org.ambrite.josh.bioStatsPipe.PartitionValidRecords;
-import org.ambrite.josh.bioStatsPipe.toStringForOutput;
+import org.ambrite.josh.Person;
+import org.ambrite.josh.Constants.ThreeState;
+import org.ambrite.josh.BioStatsPipe.StringsToPeople;
+import org.ambrite.josh.BioStatsPipe.PartitionValidRecords;
+import org.ambrite.josh.BioStatsPipe.toStringForOutput;
 import org.apache.beam.sdk.testing.PAssert;
 import org.apache.beam.sdk.testing.TestPipeline;
 import org.apache.beam.sdk.transforms.Create;
@@ -26,31 +26,32 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class bioStatsPipeTest {
 
-	@Rule public TestPipeline p = TestPipeline.create();
+	@Rule
+	public TestPipeline p = TestPipeline.create();
 
 	// create static input data
-	static final List<String> LINES = Arrays.asList(
-		" \"Alex\",       \"M\",   41,       74,      170",
-		"\"Hank\",       \"M\",   ,       71,      158");
+	static final List<String> LINES = Arrays.asList(" \"Alex\",       \"M\",   41,       74,      170",
+			"\"Hank\",       \"M\",   ,       71,      158");
 
 	// create expected output person
-	static final Person alexValid = new Person("\"Alex\"","\"M\"",41,74,170);
-	static final Person hankInvalid = new Person("\"Hank\"","\"M\"",0,71,158);
-	static final Person alexMinor = new Person("\"Alex\"","\"M\"",41,74,170,ThreeState.FALSE);
-	static final Person hankMinor = new Person("\"Hank\"","\"M\"",0,71,158,ThreeState.UNSET);
+	static final Person alexValid = new Person("\"Alex\"", "\"M\"", 41, 74, 170);
+	static final Person hankInvalid = new Person("\"Hank\"", "\"M\"", 0, 71, 158);
+	static final Person alexMinor = new Person("\"Alex\"", "\"M\"", 41, 74, 170, ThreeState.FALSE);
+	static final Person hankMinor = new Person("\"Hank\"", "\"M\"", 0, 71, 158, ThreeState.UNSET);
 	String outputString = "\"Alex\", \"M\", 41, 74, 170, false";
+
 	// *********************************************
 	// ** Unit test for split reconds into people **
 	// *********************************************
 	@Test
 	public void testSplitRecords() throws Exception {
 		PCollection<String> input = p.apply(Create.of(LINES));
-		
+
 		// apply the transform
 		PCollection<Person> output = input.apply(new StringsToPeople());
 
 		// validate the outputs
-		PAssert.that(output).containsInAnyOrder(alexMinor,hankMinor);
+		PAssert.that(output).containsInAnyOrder(alexMinor, hankMinor);
 
 		p.run().waitUntilFinish();
 	}
@@ -62,8 +63,7 @@ public class bioStatsPipeTest {
 		PCollection<Person> people = input.apply(new StringsToPeople());
 
 		// apply the transform
-		PCollectionList<Person> validityOfRecords =
-		people.apply(Partition.of(2, new PartitionValidRecords()));
+		PCollectionList<Person> validityOfRecords = people.apply(Partition.of(2, new PartitionValidRecords()));
 
 		// validate outputs
 		PAssert.that(validityOfRecords.get(1)).containsInAnyOrder(hankMinor);
