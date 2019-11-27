@@ -3,7 +3,15 @@ package org.ambrite.josh;
 import org.ambrite.josh.Constants;
 import org.ambrite.josh.Constants.ThreeState;
 import java.util.ArrayList;
+
+import com.google.api.services.bigquery.model.TableFieldSchema;
+import com.google.api.services.bigquery.model.TableRow;
+import com.google.api.services.bigquery.model.TableSchema;
+
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.WriteDisposition;
 import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -21,6 +29,8 @@ import org.apache.beam.sdk.values.PCollectionList;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import avro.shaded.com.google.common.collect.ImmutableList;
 
 public class BioStatsPipe {
 
@@ -163,19 +173,12 @@ public class BioStatsPipe {
 
 		void setInputTopic(ValueProvider<String> value);
 
-		@Description("The Cloud Pub/Sub topic to publish to. " + "The name should be in the format of "
-				+ "projects/<project-id>/topics/<topic-name>.")
+		@Description("The Big Query Table to publish to. " + "The table should be in the format of "
+		+ "{PROJECT}:{DATA-SET}.{TABLE-NAME}")
 		@Validation.Required
-		ValueProvider<String> getValidOutputTopic();
+		ValueProvider<String> getBigQueryTable();
 
-		void setValidOutputTopic(ValueProvider<String> outputTopic);
-
-		@Description("The Cloud Pub/Sub topic to publish to. " + "The name should be in the format of "
-				+ "projects/<project-id>/topics/<topic-name>.")
-		@Validation.Required
-		ValueProvider<String> getInvalidOutputTopic();
-
-		void setInvalidOutputTopic(ValueProvider<String> outputTopic);
+		void setBigQueryTable(ValueProvider<String> bigQueryTable);
 
 	}
 
@@ -235,17 +238,35 @@ public class BioStatsPipe {
 		invalid.apply("Log invalid", // the transform name
 				ParDo.of(new outputPersonData()));
 
-		// write out the invalid records
-		invalid.apply("Output Invalid Records", ParDo.of(new toStringForOutput())).apply("Write PubSub Events",
-				PubsubIO.writeStrings().to(options.getInvalidOutputTopic()));
+		//// write out the invalid records
+		//invalid.apply("Output Invalid Records", ParDo.of(new toStringForOutput())).apply("Write PubSub Events",
+		//		PubsubIO.writeStrings().to(options.getInvalidOutputTopic()));
 
-		/* .apply(TextIO.write().to(options.getOutputDirectory() + "_invalid")); */
+		
 
-		// write out the valid records
-		valid.apply("Output Invalid Records", ParDo.of(new toStringForOutput())).apply("Write to PubSub",
-				PubsubIO.writeStrings().to(options.getValidOutputTopic()));
+		//// write out the valid records
+		//valid.apply("Output Valid Records", ParDo.of(new toStringForOutput())).apply("Write to PubSub",
+		//		PubsubIO.writeStrings().to(options.getValidOutputTopic()));
 
-		/* .apply(TextIO.write().to(options.getOutputDirectory() + "_valid")); */
+		valid.apply(BigQueryIO.<Person>write()
+        .to(options.getBigQueryTable())
+		.withSchema(new TableSchema().setFields(
+			ImmutableList.of(
+				new TableFieldSchema().setName("name").setType("STRING"),
+				new TableFieldSchema().setName("sex").setType("STRING"),
+				new TableFieldSchema().setName("age").setType("INT"),
+				new TableFieldSchema().setName("weight").setType("INT"),
+				new TableFieldSchema().setName("weight").setType("INT"))))
+        .withFormatFunction(
+            (Person elem) ->
+                new TableRow()
+				.set("name", elem.getName())
+				.set("sex", elem.getSex())
+				.set("age", elem.getAge())
+				.set("weight", elem.getWeight())
+				.set("height", elem.getHeight()))
+        .withCreateDisposition(CreateDisposition.CREATE_IF_NEEDED)
+        .withWriteDisposition(WriteDisposition.WRITE_APPEND));
 
 		p.run().waitUntilFinish();
 	}

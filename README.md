@@ -26,6 +26,8 @@ Example of a batch pipeline, runs on the local runner so no cloud functionalitie
 
 `Constants.java` encompasses all the constants for the classes.
 
+`Utils.java` defines the validator for the input data.
+
 `Person.java` defines a record for the data to be passed through the pipeline
 
 `biostats.csv` is the input file
@@ -37,16 +39,18 @@ mvn compile exec:java -Dexec.mainClass=org.ambrite.josh.BioStatsPipe
 ```
 
 ## stream-working-pub-sub
-This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages get passed through the pipeline and is then output to another Pub/Sub.
+This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through a pipeline (DataFlow) and is then output to another Pub/Sub.
 
 ### Geting the streaming Pub/Sub Working
 `BioStatsPipe.java` is the main class.
 
 `Constants.java` encompasses all the constants for the classes.
 
+`Utils.java` defines the validator for the input data.
+
 `Person.java` defines a record for the data to be passed through the pipeline
 
-`biostats.csv` is the input file
+`biostats.csv` is the input file (however we publish this file from the cloud storage as described later)
 
 The functionality of this project will run similarly to that of the tutorial provided by [Google Cloud](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-java-maven).
 	
@@ -70,6 +74,49 @@ mvn  -Pdataflow-runner compile exec:java \
             --validOutputTopic=projects/{PROJECT-ID}/topics/{OUTPUT-TOPIC-FOR-VALID-RECORDS}"
 ```
 7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes a message to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
+
+## stream-working-bigquery
+This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through the pipeline (DataFlow) and is then output to a Big Query table.
+
+### Geting the streaming Pub/Sub Working
+`BioStatsPipe.java` is the main class.
+
+`Constants.java` encompasses all the constants for the classes.
+
+`Utils.java` defines the validator for the input data.
+
+`Person.java` defines a record for the data to be passed through the pipeline
+
+`biostats.csv` is the input file (however we publish this file from the cloud storage as described later)
+
+
+The functionality of this project will run similarly to that of the above implementation.
+	
+1. Clone the code to your local machine.
+2. Setup a Google Cloud Project `{PROJECT-ID}`. There are a few authentication processes that need to happen to see google cloud example and `GOOGLE_APPLICATION_CREDENTIALS`. 
+3. Setup a Bucket to store output data `{BUCKET-ID}`
+4. Setup a Pub/Sub Topic to listen to `{INPUT-TOPIC}`
+5. Setup a Big Query dataset `{BIG QUERY DATASET}` and table `{TABLE}`
+6. The fields in the table need to adhere to the following:
+    * name	: STRING
+    * sex	: STRING	
+    * age	: INT
+    * weight	: INT
+    * height	: INT
+6. Use the following Maven command through the command line (this starts the DataFlow stream)
+```
+mvn  -Pdataflow-runner compile exec:java \
+      -Dexec.mainClass=org.ambrite.josh.BioStatsPipe \
+      -Dexec.cleanupDaemonThreads=false \
+      -Dexec.args=" \
+            --project={PROJECT-ID} \
+            --stagingLocation=gs://{BUCKET-ID}/staging \
+            --tempLocation=gs://{BUCKET-ID}/temp \
+            --runner=DataflowRunner \
+            --inputTopic=projects/{PROJECT-ID}/topics/{INPUT-TOPIC-ID} \
+            --bigQueryTable={PROJECT-ID}:{BIG QUERY DATASET}.{TABLE}"
+```
+7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes a message to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final data should end up in the Big Query Table.
 
 ## word-count-beam
 This file contains the various quick start word count tutorials available on the [Apache website](https://beam.apache.org/get-started/wordcount-example/).
