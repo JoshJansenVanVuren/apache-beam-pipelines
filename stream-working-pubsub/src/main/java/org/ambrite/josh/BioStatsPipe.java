@@ -41,7 +41,6 @@ public class BioStatsPipe {
 
 				@ProcessElement
 				public void processElement(@Element String in, OutputReceiver<Person> out) {
-					// TODO: Convert the array list back to an array
 					ArrayList<String> members = new ArrayList<String>();
 
 					// split the string into an array list
@@ -60,6 +59,10 @@ public class BioStatsPipe {
 
 					// split the last member in the list
 					members.add(in.substring(subStrStart, in.length()));
+
+					// if input string is not valid LOG and drop data
+					if (!Utils.ensureInputStringValid(members))
+						return;
 
 					// verify the "is minor" field
 					ThreeState minor = ThreeState.UNSET;
