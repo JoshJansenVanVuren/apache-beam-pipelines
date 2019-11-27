@@ -60,4 +60,19 @@ stream-working-pubsub/org.apache.beam.sdk.transforms.Values
 stream-working-pubsub/org.apache.beam.sdk.values.KV
 stream-working-pubsub/org.apache.beam.sdk.values.PCollection
 stream-working-pubsub/org.apache.beam.sdk.values.TypeDescriptors
+word-count-beam/.classpath
+word-count-beam/.project
+word-count-beam/.settings/
+word-count-beam/counts-00000-of-00004
+word-count-beam/counts-00001-of-00004
+word-count-beam/counts-00002-of-00004
+word-count-beam/counts-00003-of-00004
+word-count-beam/target/
+word-count-beam/wordcounts-00000-of-00003
+word-count-beam/wordcounts-00000-of-00004
+word-count-beam/wordcounts-00001-of-00003
+word-count-beam/wordcounts-00001-of-00004
+word-count-beam/wordcounts-00002-of-00003
+word-count-beam/wordcounts-00002-of-00004
+word-count-beam/wordcounts-00003-of-00004
 
