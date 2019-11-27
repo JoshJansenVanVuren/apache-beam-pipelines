@@ -1,5 +1,5 @@
 # apache-beam-pipelines
-Various batch and streaming apache beam pipeline implementations and examples. This README serves as a skeleton for getting the implementations to work on your own machine.
+Various batch and streaming apache beam pipeline implementations and examples. This README serves as a skeleton for getting the implementations to work on your own machine. All the implementations are coded in JAVA.
 
 ## Preliminaries
 1. You need a java JDK: I used version 8 (jdk-8u231-linux-x64.tar.gz for ubuntu from java's website) this is a useful [tutorial](https://www.javahelps.com/2015/03/install-oracle-jdk-in-ubuntu.html)
@@ -72,4 +72,4 @@ mvn  -Pdataflow-runner compile exec:java \
 7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes a message to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
 
 ## word-count-beam
-Apache tutorial of a word count example for batch streaming. Find the 
+This file contains the various quick start word count tutorials available on the [Apache website](https://beam.apache.org/get-started/wordcount-example/).
