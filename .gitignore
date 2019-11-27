@@ -75,7 +75,6 @@ word-count-beam/wordcounts-00001-of-00004
 word-count-beam/wordcounts-00002-of-00003
 word-count-beam/wordcounts-00002-of-00004
 word-count-beam/wordcounts-00003-of-00004
-
 stream-working-bigquery/org.apache.beam.sdk.Pipeline
 stream-working-bigquery/org.apache.beam.sdk.io.TextIO
 stream-working-bigquery/org.apache.beam.sdk.options.PipelineOptions
