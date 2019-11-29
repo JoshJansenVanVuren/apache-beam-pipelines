@@ -19,9 +19,15 @@ Various batch and streaming apache beam pipeline implementations and examples. T
     * [Apache Concepts / Programming Model](https://cloud.google.com/dataflow/docs/concepts/beam-programming-model)
     * [A long article on different streaming methods](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
 
-## batch-working
-Example of a batch pipeline, runs on the local runner so no cloud functionalities.
+## bio-stats-pipeline
+There are three different implementation of apache beam pipelines within this project:
+1. A batch pipeline, runs on the local runner so no cloud functionalities.
+2. A streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through a pipeline (DataFlow) and is then output to another Pub/Sub.
+3. A streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through the pipeline (DataFlow) and is then output to a Big Query table.
 
+The file was dubbed bio-stats because the input CSV file contains biological characteristics of fictional individuals (see `biostats.csv`)
+
+## The files
 `BioStatsPipe.java` is the main class.
 
 `Constants.java` encompasses all the constants for the classes.
@@ -32,26 +38,18 @@ Example of a batch pipeline, runs on the local runner so no cloud functionalitie
 
 `biostats.csv` is the input file
 
+`BioStatsPipeTest.java` is the unit tests for the pipeline transforms and functions
+
+`UtilsTest.java` is the unit tests for the validation of an input record
+
+## 1 - Getting the local batch pipeline working
 1. Clone the code to your local machine.
 2. Run the following Maven command through the command line (no runner is specified, so it reverts to the local runner)
 ```
 mvn compile exec:java -Dexec.mainClass=org.ambrite.josh.BioStatsPipe
 ```
 
-## stream-working-pub-sub
-This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through a pipeline (DataFlow) and is then output to another Pub/Sub.
-
-### Geting the streaming Pub/Sub Working
-`BioStatsPipe.java` is the main class.
-
-`Constants.java` encompasses all the constants for the classes.
-
-`Utils.java` defines the validator for the input data.
-
-`Person.java` defines a record for the data to be passed through the pipeline
-
-`biostats.csv` is the input file (however we publish this file from the cloud storage as described later)
-
+### 2- Geting the streaming Pub/Sub pipeline working
 The functionality of this project will run similarly to that of the tutorial provided by [Google Cloud](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-java-maven).
 	
 1. Clone the code to your local machine.
@@ -75,21 +73,7 @@ mvn  -Pdataflow-runner compile exec:java \
 ```
 7. Now create a bucket to hold the `biostats.csv` input file, use GCP to navigate to the topic your runner is 'subscribed' to, in the top navbar find the IMPORT option and select 'Cloud Storage Text File' and complete the inputs, this publishes a message to the article, once this runs the data should be processed via the pipeline (you can view active jobs through [DataFlow](https://console.cloud.google.com/dataflow)) and final messages published to the output topics.
 
-## stream-working-bigquery
-This folder is an implementation of a streaming pipeline that is subscribed to a Pub/Sub Article whose messages are passed through the pipeline (DataFlow) and is then output to a Big Query table.
-
-### Geting the streaming Pub/Sub Working
-`BioStatsPipe.java` is the main class.
-
-`Constants.java` encompasses all the constants for the classes.
-
-`Utils.java` defines the validator for the input data.
-
-`Person.java` defines a record for the data to be passed through the pipeline
-
-`biostats.csv` is the input file (however we publish this file from the cloud storage as described later)
-
-
+### 3 - Geting the streaming BigQuery pipeline working
 The functionality of this project will run similarly to that of the above implementation.
 	
 1. Clone the code to your local machine.
