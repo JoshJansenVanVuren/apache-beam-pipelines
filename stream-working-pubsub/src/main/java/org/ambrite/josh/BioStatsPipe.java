@@ -1,8 +1,11 @@
 package org.ambrite.josh;
 
-import org.ambrite.josh.Constants;
-import org.ambrite.josh.Constants.ThreeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
+
+import org.ambrite.josh.Constants.ThreeState;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Description;
@@ -14,13 +17,11 @@ import org.apache.beam.sdk.options.Validation.Required;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.transforms.PTransform;
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.Partition;
 import org.apache.beam.sdk.transforms.Partition.PartitionFn;
 import org.apache.beam.sdk.values.PCollection;
-import org.apache.beam.sdk.values.PCollectionList;
+import org.apache.beam.sdk.values.PCollectionTuple;
+import org.apache.beam.sdk.values.TupleTagList;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BioStatsPipe {
 
@@ -51,7 +52,7 @@ public class BioStatsPipe {
 							subStrStart = i;
 						}
 
-						if (in.charAt(i) == ',') {
+						if (in.charAt(i) == Constants.DELIMITER) {
 							members.add(in.substring(subStrStart, i));
 							subStrStart = i + 1;
 						} // if
@@ -60,24 +61,18 @@ public class BioStatsPipe {
 					// split the last member in the list
 					members.add(in.substring(subStrStart, in.length()));
 
-					// if input string is not valid LOG and drop data
-					if (!Utils.ensureInputStringValid(members))
-						return;
-
 					// verify the "is minor" field
 					ThreeState minor = ThreeState.UNSET;
 					if (StringUtils.isNotBlank(members.get(Constants.AGE_INDEX))) {
-						if (Integer.parseInt(members.get(Constants.AGE_INDEX)) < 18) {
+						if (Integer.parseInt(members.get(Constants.AGE_INDEX)) < Constants.AGE_OF_MINOR) {
 							minor = ThreeState.TRUE;
 						} else {
 							minor = ThreeState.FALSE;
 						} // else
 					} // if
 
-					LOG.info(members.toString());
-					// log if incorrect number of fields
-					if (members.size() != Constants.NUM_PERSON_MEMBERS)
-						LOG.error("\n\nInput String has incorrect number of members" + members.toString() + "\n\n");
+					if (Constants.DEBUGGING_MODE)
+						LOG.info(members.toString());
 
 					// create new person
 					Person personTemp = new Person(members.get(Constants.NAME_INDEX), members.get(Constants.SEX_INDEX),
@@ -128,9 +123,9 @@ public class BioStatsPipe {
 		}
 	}
 
-	// *****************************************************************************
-	// ** DoFn to perform a toString to prepare PColletion<Person> for txt output **
-	// *****************************************************************************
+	// *********************************************************************
+	// ** DoFn to perform a toString to prepare PColletion for txt output **
+	// *********************************************************************
 	static class toStringForOutput extends DoFn<Person, String> {
 		private static final long serialVersionUID = 1L;
 
@@ -140,16 +135,50 @@ public class BioStatsPipe {
 		}
 	}
 
-	// ******************************************************************************
-	// ** DoFn to perform a toNiceString to prepare PColletion<Person> for logging
-	// **
-	// ******************************************************************************
+	// **********************************************************************
+	// ** DoFn to perform a toNiceString to prepare PColletion for logging **
+	// **********************************************************************
 	static class outputPersonData extends DoFn<Person, Person> {
 		private static final long serialVersionUID = 1L;
 
 		@ProcessElement
 		public void processElement(@Element final Person in, final OutputReceiver<Person> out) {
 			LOG.info(in.toNiceString());
+		}
+	}
+
+	// ***************************************************************
+	// ** DoFn to perform the tagging for invalid and valid records **
+	// ***************************************************************
+	static class tagValidAndInvalidRecords extends DoFn<String, String> {
+		private static final long serialVersionUID = 1L;
+
+		@ProcessElement
+		public void processElement(ProcessContext in) {
+			ArrayList<String> members = new ArrayList<String>();
+
+			// split the string into an array list
+			int subStrStart = 0;
+			for (int i = 0; i < in.element().length(); i++) {
+				// ignore whitespace before start
+				if ((i > 0) && (in.element().charAt(i - 1) == ' ') && (in.element().charAt(i) != ' ')) {
+					subStrStart = i;
+				}
+
+				if (in.element().charAt(i) == Constants.DELIMITER) {
+					members.add(in.element().substring(subStrStart, i));
+					subStrStart = i + 1;
+				} // if
+			} // for
+
+			// split the last member in the list
+			members.add(in.element().substring(subStrStart, in.element().length()));
+
+			if (Utils.ensureInputStringValid(members)) {
+				in.output(Constants.validRecordTag, in.element());
+			} else {
+				in.output(Constants.invalidRecordTag, in.element());
+			}
 		}
 	}
 
@@ -188,64 +217,28 @@ public class BioStatsPipe {
 		PCollection<String> lines = p.apply("Read PubSub Events",
 				PubsubIO.readStrings().fromTopic(options.getInputTopic()));
 
-		// PCollection<String> lines = p.apply("ReadMyFile",
-		// TextIO.read().from(options.getInputFile()));
-
-		// log out the lines
-		// lines.apply("Log inputs", // the transform name
-		// ParDo.of(new DoFn<String,String>() { // a DoFn as an anonymous inner class
-		// instance
-		//
-		// private static final long serialVersionUID = 1L;
-		//
-		// @ProcessElement
-		// public void processElement(@Element String in, OutputReceiver<String> out) {
-		// LOG.info("\n\n\n"+in+"\n\n\n");
-		// }
-		// }));
-
-		// split the lines into an array
-		// minor field is checked and added to valid records
-		final PCollection<Person> split = lines.apply(new StringsToPeople());
-
-		// log out the split lines
-		// LOG.info("\n\nSPLIT LINES\n\n");
-		// split.apply("Log splits", // the transform name
-		// ParDo.of(new DoFn<Person,String[]>() { // a DoFn as an anonymous inner class
-		// instance
-		//
-		// private static final long serialVersionUID = 1L;
-		//
-		// @ProcessElement
-		// public void processElement(@Element Person in, OutputReceiver<String[]> out)
-		// {
-		// LOG.info(in.toNiceString());
-		// }
-		// }));
-
-		// split the date into valid and invalid records
+		// split the data into valid and invalid records
 		// invalid records are defined by empty items
-		final PCollectionList<Person> validityOfRecords = split.apply(Partition.of(2, new PartitionValidRecords()));
+		PCollectionTuple mixedCollection = lines.apply(ParDo.of(new tagValidAndInvalidRecords())
+				.withOutputTags(Constants.validRecordTag, TupleTagList.of(Constants.invalidRecordTag)));
 
-		final PCollection<Person> valid = validityOfRecords.get(0);
-		final PCollection<Person> invalid = validityOfRecords.get(1);
+		// Get subset of the output with tag validRecordTag.
+		final PCollection<String> valid = mixedCollection.get(Constants.validRecordTag);
 
-		// log the invalid records
-		LOG.info("\n\nINVALID LINES\n\n");
-		invalid.apply("Log invalid", // the transform name
-				ParDo.of(new outputPersonData()));
+		// Get subset of the output with tag invalidRecordTag.
+		final PCollection<String> invalid = mixedCollection.get(Constants.invalidRecordTag);
+		
+		// convert string to person
+		// minor field is checked and added to valid records
+		final PCollection<Person> valid_person = valid.apply(new StringsToPeople());
 
 		// write out the invalid records
-		invalid.apply("Output Invalid Records", ParDo.of(new toStringForOutput())).apply("Write PubSub Events",
+		invalid.apply("Write PubSub Events",
 				PubsubIO.writeStrings().to(options.getInvalidOutputTopic()));
 
-		/* .apply(TextIO.write().to(options.getOutputDirectory() + "_invalid")); */
-
 		// write out the valid records
-		valid.apply("Output Invalid Records", ParDo.of(new toStringForOutput())).apply("Write to PubSub",
+		valid_person.apply("Output Valid Records", ParDo.of(new toStringForOutput())).apply("Write to PubSub",
 				PubsubIO.writeStrings().to(options.getValidOutputTopic()));
-
-		/* .apply(TextIO.write().to(options.getOutputDirectory() + "_valid")); */
 
 		p.run().waitUntilFinish();
 	}

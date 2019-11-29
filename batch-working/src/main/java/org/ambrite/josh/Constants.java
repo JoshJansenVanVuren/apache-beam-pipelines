@@ -6,7 +6,19 @@
 
 package org.ambrite.josh;
 
-public class Constants {
+import java.io.Serializable;
+
+import org.apache.beam.sdk.values.TupleTag;
+
+public class Constants implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    // ******************************************
+    // ** if the pipeline is in debugging mode **
+    // ******************************************
+    public static final boolean DEBUGGING_MODE = false;
+
+
     // ****************************************************
     // ** all constants associated with the person class **
     // ****************************************************
@@ -18,7 +30,18 @@ public class Constants {
     public static final int NUM_PERSON_MEMBERS = 5;
     public static final char DELIMITER = ',';
 
+    public static final int AGE_OF_MINOR = 18;
+
     public enum ThreeState {
         TRUE, FALSE, UNSET
     };
+
+    // Define two TupleTags, one for each output.
+	public final static TupleTag<String> validRecordTag = new TupleTag<String>() {
+		private static final long serialVersionUID = 1L;
+	};
+
+	public final static TupleTag<String> invalidRecordTag = new TupleTag<String>() {
+		private static final long serialVersionUID = 1L;
+	};
 }

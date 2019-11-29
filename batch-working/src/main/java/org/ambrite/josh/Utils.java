@@ -6,6 +6,7 @@
 
 package org.ambrite.josh;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,7 +15,9 @@ import org.ambrite.josh.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Utils {
+public class Utils implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     // declare the logger
 	private static final Logger LOG = LoggerFactory.getLogger(BioStatsPipe.class);
 
@@ -46,7 +49,7 @@ public class Utils {
         }
 
         // ensure age is valid
-        Pattern intPat = Pattern.compile("^[0-9]{0,3}$");
+        Pattern intPat = Pattern.compile("^[0-9]{1,3}$");
         Matcher ageMatch = intPat.matcher(in.get(Constants.AGE_INDEX));
         if(!ageMatch.find()) {
             valid = false;
@@ -64,7 +67,7 @@ public class Utils {
         Matcher heightMatch = intPat.matcher(in.get(Constants.HEIGHT_INDEX));
         if(!heightMatch.find()) {
             valid = false;
-            LOG.error("Weight is in the incorrect format\n\n" + in);
+            LOG.error("Height is in the incorrect format\n\n" + in);
         }
 
         return valid;
