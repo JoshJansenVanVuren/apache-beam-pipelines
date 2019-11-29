@@ -103,3 +103,7 @@ stream-working-bigquery/valid-00002-of-00005
 stream-working-bigquery/valid-00003-of-00005
 stream-working-bigquery/valid-00004-of-00005
 bio-stats-pipeline/cmd_line_inputs.txt
+bio-stats-pipeline/.classpath
+bio-stats-pipeline/.project
+bio-stats-pipeline/.settings/
+bio-stats-pipeline/target/
